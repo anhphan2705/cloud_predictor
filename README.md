@@ -1,4 +1,5 @@
 # weather_forecast
+
 Combining Temporal Fusion Transformers (TFT) with Reinforcement Learning (RL) is an advanced approach that could potentially leverage the sequential pattern recognition of TFTs and the decision-making capabilities of RL.
 
 ### Conceptual Overview:
@@ -67,3 +68,51 @@ Combining Temporal Fusion Transformers (TFT) with Reinforcement Learning (RL) is
 5. **Evaluation and Fine-Tuning:**
    - Evaluate the combined model on a test set.
    - Perform hyperparameter tuning and iterative improvements.
+
+### Planning Folder Structure
+
+```
+weather_forecast/
+│
+├── data/
+│   ├── raw/                # Raw data files
+│   ├── processed/          # Processed data files ready for model input
+│   ├── train/              # Training data
+│   ├── val/                # Validation data
+│   ├── test/               # Test data
+│   └── external/           # External data sources from APIs
+│
+├── notebooks/
+│   ├── EDA.ipynb           # Exploratory Data Analysis
+│   ├── preprocessing.ipynb # Data preprocessing and feature engineering
+│   └── training.ipynb      # Model training and evaluation
+│
+├── tools/
+│   ├── data_preprocessing.py # Data preprocessing scripts
+│   ├── train.py              # Training script
+│   ├── evaluate.py           # Evaluation script
+│   └── utils.py              # Utility functions
+│
+├── models/
+│   ├── tft_model.py         # TFT model definition
+│   ├── checkpoints/         # Saved model checkpoints
+│   └── __init__.py          # Init file to make this directory a package
+│
+├── config/
+│   ├── config.yaml          # Configuration files for hyperparameters, paths, etc.
+│   └── __init__.py          # Init file to make this directory a package
+│
+├── logs/
+│   ├── training_logs/       # Logs for training runs
+│   └── evaluation_logs/     # Logs for evaluation runs
+│
+├── experiments/
+│   └── ...                  # Experiments
+│
+├── venv/
+│   └── ...
+│
+├── requirements.txt         # List of dependencies
+├── README.md                # Project description and setup instructions
+└── .gitignore               # Git ignore file
+```
