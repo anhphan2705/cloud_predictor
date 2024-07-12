@@ -65,7 +65,7 @@ def save_dataset(dataset: xr.Dataset, save_dir: str, filename: str = 'combined_d
 
 def get_combined_dataset(data_root: str, dim: str = 'time', save_dir: str = '') -> xr.Dataset:
     """
-    Loads datasets from yearly files, concatenates them along the time dimension, 
+    Loads datasets from files, concatenates them along the time dimension, 
     and optionally saves the combined dataset to a specified directory.
 
     Parameters:

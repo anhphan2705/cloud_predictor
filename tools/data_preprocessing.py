@@ -1,5 +1,3 @@
-import pandas as pd
-
 from utils.file_handling import get_file_paths
 from utils.dataset_handling import load_datasets, concatenate_datasets, save_dataset, get_combined_dataset
 from utils.dataframe_handling import (
@@ -41,11 +39,8 @@ def data_pipeline(data_root: str, data_source: str = 'cds', target_vars: list = 
     time_column (str): The name of the time column. Default is 'time'.
     save_dir (str): The directory to save the preprocessed data. Default is empty string.
     """
-    # Get file paths
-    data_paths = get_file_paths(data_root)
-    
     # Load the data
-    ds = get_combined_dataset(data_paths)
+    ds = get_combined_dataset(data_root)
     df = convert_to_dataframe(ds, variables=target_vars)
     print("[INFO] Data loaded successfully.")
     
@@ -58,7 +53,3 @@ def data_pipeline(data_root: str, data_source: str = 'cds', target_vars: list = 
     # Save the preprocessed data
     if save_dir:
         save_to_csv(df, save_dir)
-
-if __name__ == '__main__':
-    data_root = 'data/samples/*.nc'
-    data_pipeline(data_root)
