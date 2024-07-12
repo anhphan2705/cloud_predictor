@@ -1,27 +1,64 @@
-import xarray as xr
 import pandas as pd
 
-from utils import get_combined_dataset, convert_to_dataframe, save_to_csv
+from utils.file_handling import get_file_paths
+from utils.dataset_handling import load_datasets, concatenate_datasets, save_dataset, get_combined_dataset
+from utils.dataframe_handling import (
+    convert_to_dataframe, convert_to_datetime, split_date_and_hour, 
+    factorize_column, drop_columns, drop_duplicates_and_reset_index, 
+    check_and_handle_missing_values, merge_dataframes, consistency_check
+)
+from utils.data_visualization import df_visualizer, get_col_count, save_to_csv, plot_missing_data
 
-def preprocess_cds_data(cds_df: pd.DataFrame, target_vars: str) -> pd.DataFrame:    
+def preprocess_cds_df(cds_df: pd.DataFrame,  time_column: str = 'time') -> pd.DataFrame: 
+    """
+    Preprocess the CDS DataFrame by converting to datetime, handling missing values,
+    splitting date and hour, factorizing the date, and dropping unnecessary columns.
+
+    Parameters:
+    cds_df (pd.DataFrame): The input DataFrame to preprocess.
+    time_column (str): The name of the time column. Default is 'time'.
+
+    Returns:
+    pd.DataFrame: The preprocessed DataFrame.
+    """
+    cds_df = convert_to_datetime(cds_df, column=time_column)
+    cds_df = check_and_handle_missing_values(cds_df, drop=True)
+    cds_df = split_date_and_hour(cds_df, time_column, new_hour_col_name="hour_id")
+    cds_df = factorize_column(cds_df, 'date', 'date_id')
+    cds_df = drop_columns(cds_df, [time_column, 'date'])
+    print(f"[INFO] Preprocess completed:\n{cds_df}")
+
     return cds_df
 
-def main(data_paths: list, target_vars: list = [], data_source: str = 'cds', save_dir: str = ''):
+def data_pipeline(data_root: str, data_source: str = 'cds', target_vars: list = [], time_column: str = 'time', save_dir: str = ''):
+    """
+    Execute the data pipeline by loading, preprocessing, and saving the data.
+
+    Parameters:
+    data_root (str): The directory pattern to search for files (e.g., 'data/*.nc').
+    data_source (str): The source of the data. Default is 'cds'.
+    target_vars (list): The list of target variables to include in the DataFrame. Default is empty list.
+    time_column (str): The name of the time column. Default is 'time'.
+    save_dir (str): The directory to save the preprocessed data. Default is empty string.
+    """
+    # Get file paths
+    data_paths = get_file_paths(data_root)
+    
     # Load the data
     ds = get_combined_dataset(data_paths)
-    
-    # Convert the data to a DataFrame
     df = convert_to_dataframe(ds, variables=target_vars)
-
+    print("[INFO] Data loaded successfully.")
+    
     # Preprocess the data
     if data_source == 'cds':
-        preprocessed_data = preprocess_cds_data(df, target_vars)
+        df = preprocess_cds_df(df, time_column)
+    else:
+        raise ValueError(f"[INFO] Data source {data_source} is not supported.")
     
     # Save the preprocessed data
     if save_dir:
-        save_to_csv(preprocessed_data, save_dir)
+        save_to_csv(df, save_dir)
 
 if __name__ == '__main__':
     data_root = 'data/samples/*.nc'
-    
-    main(data_root)
+    data_pipeline(data_root)
