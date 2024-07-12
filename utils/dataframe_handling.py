@@ -48,9 +48,9 @@ def convert_to_datetime(df: pd.DataFrame, column: str = 'time', format: str = No
         successful_conversions = df[column].notna().sum()
         failed_conversions = df[column].isna().sum()
         
-        print(f"[INFO] Successfully converted {successful_conversions} entries to datetime.")
+        print(f"[INFO] Successfully converted {successful_conversions} entries to datetime format.")
         if failed_conversions > 0:
-            print(f"[WARNING] Failed to convert {failed_conversions} entries to datetime.")
+            print(f"[WARNING] Failed to convert {failed_conversions} entries to datetime format.")
         
     except Exception as e:
         print(f"[ERROR] An error occurred while converting column '{column}' to datetime: {e}")

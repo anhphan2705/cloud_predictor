@@ -1,3 +1,5 @@
+import pandas as pd
+
 from utils.file_handling import get_file_paths
 from utils.dataset_handling import load_datasets, concatenate_datasets, save_dataset, get_combined_dataset
 from utils.dataframe_handling import (
