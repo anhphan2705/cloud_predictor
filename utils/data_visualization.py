@@ -31,20 +31,6 @@ def get_col_count(df: pd.DataFrame) -> pd.Series:
     print(f"[INFO] Count of non-missing values in each column:\n{df.count()}")
     return df.count()
 
-def save_to_csv(df: pd.DataFrame, save_dir: str):
-    """
-    Saves a DataFrame to a CSV file.
-
-    Parameters:
-    df (pd.DataFrame): The DataFrame to save.
-    save_dir (str): The directory path where the CSV file should be saved.
-
-    Usage:
-    save_to_csv(df, 'output/data.csv')
-    """
-    df.to_csv(f'{save_dir}', index=False)
-    print(f"[INFO] Saved DataFrame to {save_dir}")
-
 def plot_missing_data(df: pd.DataFrame):
     """
     Plots the missing data in a DataFrame.

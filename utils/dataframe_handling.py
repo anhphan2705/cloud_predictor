@@ -209,3 +209,17 @@ def merge_dataframes(df1: pd.DataFrame, df2: pd.DataFrame, on: str, how: str = '
     merged_df = pd.merge(df1, df2, on=on, how=how)
     print(f"[INFO] Merged DataFrames on column '{on}' using '{how}' method.")
     return merged_df
+
+def save_to_csv(df: pd.DataFrame, save_dir: str):
+    """
+    Saves a DataFrame to a CSV file.
+
+    Parameters:
+    df (pd.DataFrame): The DataFrame to save.
+    save_dir (str): The directory path where the CSV file should be saved.
+
+    Usage:
+    save_to_csv(df, 'output/data.csv')
+    """
+    df.to_csv(f'{save_dir}', index=False)
+    print(f"[INFO] Saved DataFrame to {save_dir}")
