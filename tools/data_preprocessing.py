@@ -4,9 +4,9 @@ import pandas as pd
 from utils import get_combined_dataset, convert_to_dataframe, save_to_csv
 
 def preprocess_cds_data(cds_df: pd.DataFrame, target_vars: str) -> pd.DataFrame:    
-    return None
+    return cds_df
 
-def main(data_paths: list, target_vars: list, data_source: str = 'cds', save_dir: str = ''):
+def main(data_paths: list, target_vars: list = [], data_source: str = 'cds', save_dir: str = ''):
     # Load the data
     ds = get_combined_dataset(data_paths)
     
@@ -20,3 +20,8 @@ def main(data_paths: list, target_vars: list, data_source: str = 'cds', save_dir
     # Save the preprocessed data
     if save_dir:
         save_to_csv(preprocessed_data, save_dir)
+
+if __name__ == '__main__':
+    data_root = 'data/samples/*.nc'
+    
+    main(data_root)

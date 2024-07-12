@@ -3,7 +3,7 @@ import xarray as xr
 import pandas as pd
 import os
 
-def get_files(dir):
+def get_file_paths(dir):
     """
     Retrieves a list of files matching the specified directory pattern.
     
@@ -90,46 +90,48 @@ def save_dataset(dataset, save_dir, filename='combined_dataset.nc'):
     dataset.to_netcdf(file_path)
     print(f"[INFO] Dataset saved to {file_path}")
 
-def get_combined_dataset(data_paths, save_dir=''):
+def get_combined_dataset(data_root: str, save_dir: str = '') -> xr.Dataset:
     """
     Loads datasets from yearly files, concatenates them along the time dimension, 
     and optionally saves the combined dataset to a specified directory.
     
     Parameters:
-    data_paths (list): A list of file paths to the yearly data files.
+    data_root (str): The root directory path where the yearly data files are stored.
     save_dir (str, optional): The directory path where the combined dataset should be saved. 
                               If empty, the dataset is not saved. Default is ''.
     
     Returns:
     xr.Dataset: The combined dataset concatenated along the time dimension.
     """
-    # Load individual datasets from the provided data paths
+    data_paths = get_file_paths(data_root)
     datasets = load_datasets(data_paths)
     
-    # Concatenate the loaded datasets along the 'time' dimension
-    combined_ds = concatenate_datasets(datasets, dim='time')
+    if len(datasets) > 1:
+        datasets = concatenate_datasets(datasets, dim='time')
     
-    # If a save directory is provided, save the combined dataset to that directory
     if save_dir:
-        save_dataset(combined_ds, save_dir)
-    
-    # Return the combined dataset
-    return combined_ds
+        save_dataset(datasets, save_dir)
 
-def convert_to_dataframe(datasets: xr.Dataset, variables: list) -> pd.DataFrame:
+    return datasets
+
+def convert_to_dataframe(datasets: xr.Dataset, variables: list = None) -> pd.DataFrame:
     """
     Converts a combined xarray Dataset to a pandas DataFrame, including specified variables.
     
     Parameters:
     datasets (xr.Dataset): The combined xarray Dataset.
-    variables (list): A list of variable names to include in the DataFrame.
+    variables (list, optional): A list of variable names to include in the DataFrame. 
+                                If None, include all variables in the dataset.
     
     Returns:
     pd.DataFrame: A DataFrame containing the specified variables, with the index reset.
     """
+    if not variables:
+        variables = list(datasets.data_vars)
+    
     df = datasets[variables].to_dataframe().reset_index()
     df['time'] = pd.to_datetime(df['time'])
-    print(f"[INFO] Converted dataset to DataFrame with shape: {df.shape}")
+    print(f"[INFO] Converted dataset to DataFrame:\n{df.count()}")
     return df
 
 def save_to_csv(df, save_dir):
