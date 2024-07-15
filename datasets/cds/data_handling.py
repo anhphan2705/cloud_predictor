@@ -25,16 +25,16 @@ def preprocess_cds_df(cds_df: pd.DataFrame,  time_column: str = 'time') -> pd.Da
 
     return cds_df
 
-def create_cds_time_series_dataset(df: pd.DataFrame, training_cutoff: int, max_encoder_length: int, max_prediction_length: int, targets: list = ["tcc", "hcc", "mcc", "lcc", "tciw", "tclw"]) -> TimeSeriesDataSet:
+def create_cds_time_series_dataset(df: pd.DataFrame, max_encoder_length: int, max_prediction_length: int, targets: list, min_prediction_length: int = 1) -> TimeSeriesDataSet:
     """
     Create a TimeSeriesDataSet for training.
 
     Parameters:
     df (pd.DataFrame): The input DataFrame.
-    training_cutoff (int): The cutoff date_id for training.
     max_encoder_length (int): The maximum length of the encoder.
     max_prediction_length (int): The maximum length of the prediction.
     targets (list): A list of target variables to predict.
+    min_prediction_length (int): The minimum timesteps for prediction. Default is 1.
 
     Requirements:
     The data source must be from `cds`.
@@ -42,7 +42,12 @@ def create_cds_time_series_dataset(df: pd.DataFrame, training_cutoff: int, max_e
     
     Returns:
     TimeSeriesDataSet: The created TimeSeriesDataSet.
+    
+    Usage:
+    create_cds_time_series_dataset(df, max_encoder_length, max_prediction_length, targets)
     """
+    training_cutoff = df["date_id"].max() - max_prediction_length
+
     return TimeSeriesDataSet(
         df[lambda x: x.date_id <= training_cutoff],
         time_idx="date_id",
@@ -50,7 +55,7 @@ def create_cds_time_series_dataset(df: pd.DataFrame, training_cutoff: int, max_e
         group_ids=["latitude", "longitude"],
         min_encoder_length=max_encoder_length // 2,
         max_encoder_length=max_encoder_length,
-        min_prediction_length=max_prediction_length,
+        min_prediction_length=min_prediction_length,
         max_prediction_length=max_prediction_length,
         static_categoricals=["latitude", "longitude"],
         time_varying_known_reals=["date_id", "hour_id"],  # Known covariates
