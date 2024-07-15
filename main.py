@@ -1,4 +1,4 @@
-from tools.data_preprocessing import data_pipeline
+from tools.data_process import data_pipeline
 
 if __name__ == "__main__":
     data_root = 'data/samples/*.nc'

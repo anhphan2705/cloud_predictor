@@ -1,28 +1,23 @@
 import pandas as pd
+from pytorch_forecasting import Baseline, TemporalFusionTransformer, TimeSeriesDataSet
+from utils.dataset_utils import get_combined_dataset
+from utils.dataframe_utils import convert_to_dataframe, save_to_csv
+from datasets.cds.data_handling import preprocess_cds_df
 
-from utils.dataset_handling import get_combined_dataset
-from utils.dataframe_handling import convert_to_dataframe, convert_to_datetime, split_date_and_hour, factorize_column, drop_columns, check_and_handle_missing_values, save_to_csv
-
-def preprocess_cds_df(cds_df: pd.DataFrame,  time_column: str = 'time') -> pd.DataFrame: 
+def dataloader(dataset: TimeSeriesDataSet, train: bool, batch_size: int, num_workers: int) -> pd.DataFrame:
     """
-    Preprocess the CDS DataFrame by converting to datetime, handling missing values,
-    splitting date and hour, factorizing the date, and dropping unnecessary columns.
+    Create a DataLoader from a TimeSeriesDataSet.
 
     Parameters:
-    cds_df (pd.DataFrame): The input DataFrame to preprocess.
-    time_column (str): The name of the time column. Default is 'time'.
+    dataset (TimeSeriesDataSet): The TimeSeriesDataSet to convert into a DataLoader.
+    train (bool): Whether the DataLoader is for training or validation.
+    batch_size (int): The batch size for the DataLoader.
+    num_workers (int): The number of workers for the DataLoader.
 
     Returns:
-    pd.DataFrame: The preprocessed DataFrame.
+    DataLoader: A PyTorch DataLoader for the given TimeSeriesDataSet.
     """
-    cds_df = convert_to_datetime(cds_df, column=time_column)
-    cds_df = check_and_handle_missing_values(cds_df, drop=True)
-    cds_df = split_date_and_hour(cds_df, time_column, new_hour_col_name="hour_id")
-    cds_df = factorize_column(cds_df, 'date', 'date_id')
-    cds_df = drop_columns(cds_df, [time_column, 'date'])
-    print(f"[INFO] Preprocess completed:\n{cds_df}")
-
-    return cds_df
+    return dataset.to_dataloader(train=train, batch_size=batch_size, num_workers=num_workers)
 
 def data_pipeline(data_root: str, data_source: str = 'cds', target_vars: list = [], time_column: str = 'time', save_dir: str = ''):
     """
@@ -49,3 +44,5 @@ def data_pipeline(data_root: str, data_source: str = 'cds', target_vars: list = 
     # Save the preprocessed data
     if save_dir:
         save_to_csv(df, save_dir)
+
+    return df

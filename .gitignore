@@ -163,4 +163,3 @@ cython_debug/
 
 weather_env
 data/*
-datasets/*

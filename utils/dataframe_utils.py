@@ -57,6 +57,26 @@ def convert_to_datetime(df: pd.DataFrame, column: str = 'time', format: str = No
     
     return df
 
+def convert_columns_to_string(df: pd.DataFrame, columns: list) -> pd.DataFrame:
+    """
+    Convert specified columns in a DataFrame to strings.
+
+    Parameters:
+    df (pd.DataFrame): The DataFrame containing the columns to convert.
+    columns (list): A list of column names to convert to strings.
+
+    Usage:
+    convert_columns_to_string(df, ["latitude", "longitude"])
+
+    Returns:
+    pd.DataFrame: The DataFrame with the specified columns converted to strings.
+    """
+    for column in columns:
+        df[column] = df[column].astype(str)
+        print(f"[INFO] Converted column '{column}' to string.")
+    
+    return df
+
 def split_date_and_hour(df: pd.DataFrame, time_column: str, new_hour_col_name: str = 'hour', new_date_col_name: str = 'date') -> pd.DataFrame:
     """
     Split and add the 'date' and 'hour' from 'time' column in the DataFrame.
