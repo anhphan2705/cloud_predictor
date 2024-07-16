@@ -7,9 +7,9 @@ data:
 
 training:
   max_encoder_length: 365
-  min_encoder_length: 160
+  min_encoder_length: 182
   max_prediction_length: 365
-  min_prediction_length: 160
+  min_prediction_length: 12
   batch_size: 16
   num_workers: 4
   max_epochs: 50

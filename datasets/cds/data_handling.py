@@ -57,7 +57,7 @@ def create_cds_time_series_datasets(df: pd.DataFrame, min_encoder_length: int, m
         'time_varying_known_reals': ["time_idx"],  # Known covariates
         'time_varying_unknown_reals': targets,
         'target_normalizer': MultiNormalizer([GroupNormalizer(groups=["latitude", "longitude"])] * len(targets)),
-        'allow_missing_timesteps': True,  # Allow missing timesteps
+        'allow_missing_timesteps': False,  # Allow missing timesteps
     }
 
     if mode == 'train':
