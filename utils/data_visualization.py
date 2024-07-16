@@ -79,3 +79,23 @@ def plot_time_series(df: pd.DataFrame, latitude: float, longitude: float, variab
     plt.legend()
     plt.grid(True)
     plt.show()
+
+def convert_to_time_idx(years: int = 0, days: int = 0, hours: int = 0, step: int = 2) -> int:
+    """
+    Convert years, days, and hours to time index counts.
+
+    Parameters:
+    years (int): Number of years to convert. Default is 0.
+    days (int): Number of days to convert. Default is 0.
+    hours (int): Number of hours to convert. Default is 0.
+    step (int): Time step in hours. Default is 2 (for 2-hour intervals).
+
+    Returns:
+    int: Equivalent time index count.
+
+    Example Usage:
+    time_idx = convert_to_time_idx(years=1, days=0, hours=0, step=2)
+    """
+    total_days = years * 365 + days  # Assuming no leap years for simplicity
+    total_hours = total_days * 24 + hours
+    return total_hours // step

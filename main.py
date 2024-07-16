@@ -10,10 +10,11 @@ def main(config):
     data_config = config['data']
     training_config = config['training']
     evaluation_config = config['evaluation']
+    checkpoints_config = config['checkpoints']
 
     # Create directories for logs and checkpoints
     if args.mode == 'train':
-        training_dir, checkpoints_dir, logs_dir = create_training_directory()
+        training_dir, checkpoints_dir, logs_dir = create_training_directory(base_dir=checkpoints_config['base_dir'], training_subdir=checkpoints_config['training_dir'])
 
         # Load the data
         train_dataloader, val_dataloader = data_pipeline(
@@ -21,6 +22,7 @@ def main(config):
             data_source=data_config['data_source'],
             target_vars=data_config['target_vars'],
             time_column=data_config['time_column'],
+            min_encoder_length=training_config['min_encoder_length'],
             max_encoder_length=training_config['max_encoder_length'],
             max_prediction_length=training_config['max_prediction_length'],
             min_prediction_length=training_config['min_prediction_length'],
@@ -30,10 +32,10 @@ def main(config):
         )
 
         # Train the model
-        train_pipeline(train_dataloader, val_dataloader, param_tuning_trial_count=training_config['param_tuning_trial_count'])
+        train_pipeline(train_dataloader, val_dataloader, config)
 
     elif args.mode == 'eval':
-        evaluation_dir = create_evaluation_directory()
+        evaluation_dir = create_evaluation_directory(base_dir=checkpoints_config['base_dir'], evaluation_subdir=checkpoints_config['evaluation_dir'])
 
         # Load the evaluation data
         eval_dataloader = data_pipeline(
@@ -41,6 +43,7 @@ def main(config):
             data_source=data_config['data_source'],
             target_vars=data_config['target_vars'],
             time_column=data_config['time_column'],
+            min_encoder_length=training_config['min_encoder_length'],
             max_encoder_length=training_config['max_encoder_length'],
             max_prediction_length=training_config['max_prediction_length'],
             min_prediction_length=training_config['min_prediction_length'],
@@ -50,7 +53,7 @@ def main(config):
         )[0]  # Only need the DataLoader for evaluation
 
         # Load the trained model
-        best_model_path = os.path.join(training_dir, 'best_model.ckpt')
+        best_model_path = os.path.join(training_dir, checkpoints_config['best_model_filename'])
         model = torch.load(best_model_path)
 
         # Evaluate the model

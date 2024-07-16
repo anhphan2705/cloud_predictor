@@ -24,7 +24,7 @@ def dataloader(dataset: TimeSeriesDataSet, train: bool, batch_size: int, num_wor
     print(f"[INFO] Creating DataLoader for {'training' if train else 'validation'}...")
     return dataset.to_dataloader(train=train, batch_size=batch_size, num_workers=num_workers)
 
-def data_pipeline(data_root: str, data_source: str = 'cds', target_vars: list = [], time_column: str = 'time', max_encoder_length: int = 365, max_prediction_length: int = 365, min_prediction_length: int = 1, batch_size: int = 16, num_workers: int = 4, save_dir: str = '') -> tuple:
+def data_pipeline(data_root: str, min_encoder_length: int, max_encoder_length: int, min_prediction_length: int, max_prediction_length: int, data_source: str = 'cds', target_vars: list = [], time_column: str = 'time', batch_size: int = 16, num_workers: int = 4, save_dir: str = '') -> tuple:
     """
     Execute the data pipeline by loading, preprocessing (save preprocessed data if requested), creating datasets, and DataLoaders.
 
@@ -68,7 +68,7 @@ def data_pipeline(data_root: str, data_source: str = 'cds', target_vars: list = 
         if save_dir:
             save_to_csv(df, save_dir)
 
-        training_dataset, validation_dataset = create_cds_time_series_datasets(df, max_encoder_length, max_prediction_length, target_vars, min_prediction_length)
+        training_dataset, validation_dataset = create_cds_time_series_datasets(df, min_encoder_length, max_encoder_length, min_prediction_length, max_prediction_length, target_vars)
     else:
         raise ValueError(f"[INFO] Data source {data_source} is not supported.")
     
