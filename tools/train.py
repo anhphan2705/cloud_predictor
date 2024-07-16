@@ -8,7 +8,7 @@ from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint
 from lightning.pytorch.loggers import TensorBoardLogger
 from pytorch_forecasting import TemporalFusionTransformer
 from pytorch_forecasting.metrics import QuantileLoss
-from hyperparam_tuning import tune_hyperparameters
+from tools.hyperparam_tuning import tune_hyperparameters
 from utils.file_utils import create_training_directory
 
 def training(train_dataloader: DataLoader, val_dataloader: DataLoader, best_params: dict) -> pl.Trainer:
@@ -67,7 +67,8 @@ def training(train_dataloader: DataLoader, val_dataloader: DataLoader, best_para
         callbacks=[lr_logger, early_stop_callback, checkpoint_callback, progress_bar],
         logger=logger,
     )
-
+    print(f"[INFO] Loaded model with {tft.size()} parameters.\n{tft}")
+    print(f"[INFO] Starting training...")
     # Train the model
     trainer.fit(tft, train_dataloader, val_dataloader)
 

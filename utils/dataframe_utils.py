@@ -241,5 +241,6 @@ def save_to_csv(df: pd.DataFrame, save_dir: str):
     Usage:
     save_to_csv(df, 'output/data.csv')
     """
+    print(f'[INFO] Saving DataFrame...')
     df.to_csv(f'{save_dir}', index=False)
     print(f"[INFO] Saved DataFrame to {save_dir}")

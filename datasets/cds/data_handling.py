@@ -47,6 +47,7 @@ def create_cds_time_series_datasets(df: pd.DataFrame, max_encoder_length: int, m
     train_dataset, val_dataset = create_cds_time_series_datasets(df, max_encoder_length=365, max_prediction_length=365, targets=['tcc', 'hcc'])
     eval_dataset = create_cds_time_series_datasets(df, max_encoder_length=365, max_prediction_length=365, targets=['tcc', 'hcc'], mode='eval')
     """
+    print(f'[INFO] Creating TimeSeriesDataSet for {mode} mode...')
     if mode == 'train':
         training_cutoff = df["date_id"].max() - max_prediction_length
 

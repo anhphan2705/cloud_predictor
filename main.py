@@ -59,7 +59,7 @@ def main(config):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Weather Forecasting with Temporal Fusion Transformer')
     parser.add_argument('--mode', type=str, choices=['train', 'eval'], required=True, help='Mode to run: train or eval')
-    parser.add_argument('--config', type=str, default='config.yaml', help='Path to configuration file')
+    parser.add_argument('--config', type=str, default='configs/cds.yaml', help='Path to configuration file')
     args = parser.parse_args()
 
     config = load_config(args.config)

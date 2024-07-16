@@ -3,7 +3,7 @@ data:
   data_source: 'cds'
   target_vars: ['tcc', 'hcc', 'mcc', 'lcc', 'tciw', 'tclw']
   time_column: 'time'
-  save_dir: 'preprocessed_data.csv'
+  save_dir: ''
 
 training:
   max_encoder_length: 365
@@ -15,4 +15,4 @@ training:
 
 evaluation:
   eval_data_root: 'data/eval_samples/*.nc'
-  eval_save_dir: 'evaluation_data.csv'
+  eval_save_dir: ''

@@ -82,6 +82,7 @@ def tune_hyperparameters(train_dataloader: DataLoader, val_dataloader: DataLoade
     Example Usage:
     best_params = tune_hyperparameters(train_dataloader, val_dataloader, n_trials=100)
     """
+    print("[INFO] Tuning hyperparameters using Optuna...")
     # Create an Optuna study for hyperparameter optimization
     study = optuna.create_study(direction="minimize")
     
@@ -94,6 +95,6 @@ def tune_hyperparameters(train_dataloader: DataLoader, val_dataloader: DataLoade
 
     # Get the best hyperparameters
     best_params = study.best_trial.params
-    print(f"Best parameters: {best_params}")
+    print(f"[INFO] Best parameters: {best_params}")
 
     return best_params

@@ -21,6 +21,7 @@ def dataloader(dataset: TimeSeriesDataSet, train: bool, batch_size: int, num_wor
     train_loader = dataloader(training_dataset, train=True, batch_size=16, num_workers=4)
     val_loader = dataloader(validation_dataset, train=False, batch_size=16, num_workers=4)
     """
+    print(f"[INFO] Creating DataLoader for {'training' if train else 'validation'}...")
     return dataset.to_dataloader(train=train, batch_size=batch_size, num_workers=num_workers)
 
 def data_pipeline(data_root: str, data_source: str = 'cds', target_vars: list = [], time_column: str = 'time', max_encoder_length: int = 365, max_prediction_length: int = 365, min_prediction_length: int = 1, batch_size: int = 16, num_workers: int = 4, save_dir: str = '') -> tuple:
