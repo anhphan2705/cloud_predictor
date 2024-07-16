@@ -20,7 +20,7 @@ def get_file_paths(dir: str) -> list:
     print(f"[INFO] Found {len(files)} files in {dir}")
     return files
 
-def create_training_directory(base_dir='./model/trainings'):
+def create_training_directory(base_dir='./models/trainings'):
     now = datetime.now()
     timestamp = now.strftime("%Y%m%d_%H%M%S")
     training_dir = os.path.join(base_dir, timestamp)
@@ -32,7 +32,7 @@ def create_training_directory(base_dir='./model/trainings'):
 
     return training_dir, checkpoints_dir, logs_dir
 
-def create_evaluation_directory(base_dir='./evaluation/evaluations'):
+def create_evaluation_directory(base_dir='./models/evaluations'):
     now = datetime.now()
     timestamp = now.strftime("%Y%m%d_%H%M%S")
     evaluation_dir = os.path.join(base_dir, timestamp)

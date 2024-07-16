@@ -36,7 +36,7 @@ for year in years:
             'format': 'netcdf',
             'variable': variables,
             'year': year,
-            'month': days,
+            'month': months,
             'day': days,
             'time': times,
             'area': vietnam_area,
