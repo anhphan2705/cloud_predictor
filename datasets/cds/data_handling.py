@@ -25,30 +25,23 @@ def preprocess_cds_df(cds_df: pd.DataFrame,  time_column: str = 'time') -> pd.Da
 
     return cds_df
 
-def create_cds_time_series_dataset(df: pd.DataFrame, max_encoder_length: int, max_prediction_length: int, targets: list, min_prediction_length: int = 1) -> TimeSeriesDataSet:
+def create_time_series_datasets(df: pd.DataFrame, max_encoder_length: int, max_prediction_length: int, targets: list, min_prediction_length: int = 1):
     """
-    Create a TimeSeriesDataSet for training.
+    Create TimeSeriesDataSet for both training and validation.
 
     Parameters:
     df (pd.DataFrame): The input DataFrame.
     max_encoder_length (int): The maximum length of the encoder.
     max_prediction_length (int): The maximum length of the prediction.
     targets (list): A list of target variables to predict.
-    min_prediction_length (int): The minimum timesteps for prediction. Default is 1.
+    min_prediction_length (int): The minimum length of the prediction.
 
-    Requirements:
-    The data source must be from `cds`.
-    The DataFrame must have 'date_id' as the time identifier column and 'hour_id' as its covariate.
-    
     Returns:
-    TimeSeriesDataSet: The created TimeSeriesDataSet.
-    
-    Usage:
-    create_cds_time_series_dataset(df, max_encoder_length, max_prediction_length, targets)
+    tuple: A tuple containing the training and validation TimeSeriesDataSets.
     """
     training_cutoff = df["date_id"].max() - max_prediction_length
 
-    return TimeSeriesDataSet(
+    training_dataset = TimeSeriesDataSet(
         df[lambda x: x.date_id <= training_cutoff],
         time_idx="date_id",
         target=targets,  # Targets to predict
@@ -63,3 +56,12 @@ def create_cds_time_series_dataset(df: pd.DataFrame, max_encoder_length: int, ma
         target_normalizer=MultiNormalizer([GroupNormalizer(groups=["latitude", "longitude"])] * len(targets)),
         allow_missing_timesteps=True,  # Allow missing timesteps
     )
+
+    validation_dataset = TimeSeriesDataSet.from_dataset(
+        training_dataset,
+        df[lambda x: x.date_id > training_cutoff],
+        predict=True,
+        stop_randomization=True
+    )
+
+    return training_dataset, validation_dataset
