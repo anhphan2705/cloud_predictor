@@ -1,0 +1,18 @@
+data:
+  data_root: 'data/samples/*.nc'
+  data_source: 'cds'
+  target_vars: ['tcc', 'hcc', 'mcc', 'lcc', 'tciw', 'tclw']
+  time_column: 'time'
+  save_dir: 'preprocessed_data.csv'
+
+training:
+  max_encoder_length: 365
+  max_prediction_length: 365
+  min_prediction_length: 1
+  batch_size: 16
+  num_workers: 4
+  param_tuning_trial_count: 100
+
+evaluation:
+  eval_data_root: 'data/eval_samples/*.nc'
+  eval_save_dir: 'evaluation_data.csv'

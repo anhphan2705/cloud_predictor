@@ -1,5 +1,6 @@
 import glob
 import os
+import yaml
 from datetime import datetime
 
 def get_file_paths(dir: str) -> list:
@@ -19,16 +20,28 @@ def get_file_paths(dir: str) -> list:
     print(f"[INFO] Found {len(files)} files in {dir}")
     return files
 
-def create_training_directory(base_path='./model'):
-    # Get current date and time
-    current_time = datetime.now().strftime("%Y%m%d%H%M%S")
-    # Create directory path
-    training_dir = os.path.join(base_path, current_time)
+def create_training_directory(base_dir='./model/trainings'):
+    now = datetime.now()
+    timestamp = now.strftime("%Y%m%d_%H%M%S")
+    training_dir = os.path.join(base_dir, timestamp)
     checkpoints_dir = os.path.join(training_dir, 'checkpoints')
     logs_dir = os.path.join(training_dir, 'logs')
 
-    # Create directories
     os.makedirs(checkpoints_dir, exist_ok=True)
     os.makedirs(logs_dir, exist_ok=True)
 
     return training_dir, checkpoints_dir, logs_dir
+
+def create_evaluation_directory(base_dir='./evaluation/evaluations'):
+    now = datetime.now()
+    timestamp = now.strftime("%Y%m%d_%H%M%S")
+    evaluation_dir = os.path.join(base_dir, timestamp)
+
+    os.makedirs(evaluation_dir, exist_ok=True)
+
+    return evaluation_dir
+
+def load_config(config_path='config.yaml'):
+    with open(config_path, 'r') as file:
+        config = yaml.safe_load(file)
+    return config
