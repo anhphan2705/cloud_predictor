@@ -25,7 +25,7 @@ def preprocess_cds_df(cds_df: pd.DataFrame,  time_column: str = 'time') -> pd.Da
 
     return cds_df
 
-def create_time_series_datasets(df: pd.DataFrame, max_encoder_length: int, max_prediction_length: int, targets: list, min_prediction_length: int = 1):
+def create_cds_time_series_datasets(df: pd.DataFrame, max_encoder_length: int, max_prediction_length: int, targets: list, min_prediction_length: int = 1):
     """
     Create TimeSeriesDataSet for both training and validation.
 
