@@ -1,5 +1,4 @@
 import os
-from datetime import datetime
 import torch
 import lightning.pytorch as pl
 from torch.utils.data import DataLoader
@@ -54,6 +53,7 @@ def training(train_dataloader: DataLoader, val_dataloader: DataLoader, best_para
     )
     early_stop_callback = EarlyStopping(monitor="val_loss", min_delta=1e-4, patience=10, verbose=False, mode="min")
     lr_logger = LearningRateMonitor()
+    progress_bar = TQDMProgressBar(refresh_rate=1)
     logger = TensorBoardLogger(save_dir=logs_dir, name='tft_logs')
 
     # Create PyTorch Lightning trainer
@@ -64,7 +64,7 @@ def training(train_dataloader: DataLoader, val_dataloader: DataLoader, best_para
         gradient_clip_val=0.1,
         limit_train_batches=30,
         log_every_n_steps=10,
-        callbacks=[lr_logger, early_stop_callback, checkpoint_callback],
+        callbacks=[lr_logger, early_stop_callback, checkpoint_callback, progress_bar],
         logger=logger,
     )
 

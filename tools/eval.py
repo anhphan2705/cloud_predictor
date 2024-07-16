@@ -1,6 +1,5 @@
 import pandas as pd
-import torch
-from pytorch_forecasting import TemporalFusionTransformer, TimeSeriesDataSet
+from pytorch_forecasting import TemporalFusionTransformer
 from utils.dataset_utils import get_combined_dataset
 from utils.dataframe_utils import convert_to_dataframe
 from datasets.cds.data_handling import preprocess_cds_df, create_cds_time_series_datasets
