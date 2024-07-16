@@ -23,12 +23,34 @@ def main():
 
     if args.mode == 'train':
         # Train the model
-        train_dataloader, val_dataloader = data_pipeline(args.data_root, args.data_source, args.target_vars, args.time_column, args.max_encoder_length, args.max_prediction_length, args.min_prediction_length, args.batch_size, args.num_workers, args.save_dir)
+        train_dataloader, val_dataloader = data_pipeline(
+            data_root=args.data_root,
+            data_source=args.data_source,
+            target_vars=args.target_vars,
+            time_column=args.time_column,
+            max_encoder_length=args.max_encoder_length,
+            max_prediction_length=args.max_prediction_length,
+            min_prediction_length=args.min_prediction_length,
+            batch_size=args.batch_size,
+            num_workers=args.num_workers,
+            save_dir=args.save_dir
+        )
         train_pipeline(train_dataloader, val_dataloader, param_tuning_trial_count=100)
 
     elif args.mode == 'eval':
         # Evaluate the model
-        evaluate_model(args.model_path, args.data_root, args.target_vars, args.time_column, args.max_encoder_length, args.max_prediction_length, args.min_prediction_length, args.batch_size, args.num_workers, args.new_data_root)
+        evaluate_model(
+            model_path=args.model_path,
+            data_root=args.data_root,
+            target_vars=args.target_vars,
+            time_column=args.time_column,
+            max_encoder_length=args.max_encoder_length,
+            max_prediction_length=args.max_prediction_length,
+            min_prediction_length=args.min_prediction_length,
+            batch_size=args.batch_size,
+            num_workers=args.num_workers,
+            new_data_root=args.new_data_root
+        )
 
 if __name__ == "__main__":
     main()

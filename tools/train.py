@@ -10,6 +10,7 @@ from lightning.pytorch.loggers import TensorBoardLogger
 from pytorch_forecasting import TemporalFusionTransformer
 from pytorch_forecasting.metrics import QuantileLoss
 from hyperparam_tuning import tune_hyperparameters
+from utils.file_utils import create_training_directory
 
 def training(train_dataloader: DataLoader, val_dataloader: DataLoader, best_params: dict) -> pl.Trainer:
     """
@@ -26,6 +27,9 @@ def training(train_dataloader: DataLoader, val_dataloader: DataLoader, best_para
     Example Usage:
     trainer = final_training(train_dataloader, val_dataloader, best_params)
     """
+    # Create directories for checkpoints and logs
+    training_dir, checkpoints_dir, logs_dir = create_training_directory()
+
     # Create Temporal Fusion Transformer model
     tft = TemporalFusionTransformer.from_dataset(
         train_dataloader.dataset,
@@ -41,28 +45,16 @@ def training(train_dataloader: DataLoader, val_dataloader: DataLoader, best_para
     )
 
     # Define callbacks and logger
+    checkpoint_callback = ModelCheckpoint(
+        dirpath=checkpoints_dir,
+        filename='checkpoint_{epoch:02d}',
+        save_top_k=-1,  # Save all checkpoints
+        monitor='val_loss',
+        mode='min'
+    )
     early_stop_callback = EarlyStopping(monitor="val_loss", min_delta=1e-4, patience=10, verbose=False, mode="min")
     lr_logger = LearningRateMonitor()
-    progress_bar = TQDMProgressBar(refresh_rate=10)
-    logger = TensorBoardLogger("lightning_logs")
-
-    # Define checkpoint callbacks
-    current_time = datetime.now().strftime("%Y%m%d%H%M%S")
-    checkpoint_callback = ModelCheckpoint(
-        dirpath=f"./model/checkpoints/{current_time}",
-        filename="epoch{epoch:02d}",
-        save_top_k=-1,  # Save all checkpoints
-        save_last=False,
-        every_n_epochs=10,  # Save every 10 epochs
-    )
-
-    best_model_callback = ModelCheckpoint(
-        dirpath=f"./model",
-        filename=f"model_{current_time}",
-        monitor="val_loss",
-        mode="min",
-        save_top_k=1,  # Only save the best model
-    )
+    logger = TensorBoardLogger(save_dir=logs_dir, name='tft_logs')
 
     # Create PyTorch Lightning trainer
     trainer = pl.Trainer(
@@ -72,12 +64,18 @@ def training(train_dataloader: DataLoader, val_dataloader: DataLoader, best_para
         gradient_clip_val=0.1,
         limit_train_batches=30,
         log_every_n_steps=10,
-        callbacks=[lr_logger, early_stop_callback, progress_bar, checkpoint_callback, best_model_callback],
+        callbacks=[lr_logger, early_stop_callback, checkpoint_callback],
         logger=logger,
     )
 
     # Train the model
     trainer.fit(tft, train_dataloader, val_dataloader)
+
+    # Save the best model
+    best_model_path = checkpoint_callback.best_model_path
+    final_best_model_path = os.path.join(training_dir, 'best_model.ckpt')
+    if best_model_path:
+        torch.save(torch.load(best_model_path), final_best_model_path)
 
     return trainer
 
