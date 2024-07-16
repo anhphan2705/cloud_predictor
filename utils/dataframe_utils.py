@@ -77,25 +77,29 @@ def convert_columns_to_string(df: pd.DataFrame, columns: list) -> pd.DataFrame:
     
     return df
 
-def split_date_and_hour(df: pd.DataFrame, time_column: str, new_hour_col_name: str = 'hour', new_date_col_name: str = 'date') -> pd.DataFrame:
+def split_year_date_hour(df: pd.DataFrame, time_column: str, new_hour_col_name: str = 'hour_id', new_date_col_name: str = 'date_id', new_year_col_name: str = 'year_id') -> pd.DataFrame:
     """
-    Split and add the 'date' and 'hour' from 'time' column in the DataFrame.
+    Split and add the 'date', 'hour', and 'year' from 'time' column in the DataFrame.
 
     Parameters:
     df (pd.DataFrame): The DataFrame to process.
-    time_column (str): The name of the time column to extract 'date' and 'hour' from.
+    time_column (str): The name of the time column to extract 'date', 'hour', and 'year' from.
+    new_hour_col_name (str): The name of the new hour column. Default is 'hour'.
+    new_date_col_name (str): The name of the new date column. Default is 'date'.
+    new_year_col_name (str): The name of the new year column. Default is 'year'.
 
     Usage:
-    df = split_date_and_hour(df, time_column='time')
+    df = split_date_hour_and_year(df, time_column='time')
 
     Returns:
-    pd.DataFrame: The DataFrame with 'date' and 'hour' columns added.
+    pd.DataFrame: The DataFrame with 'date', 'hour', and 'year' columns added.
     """
     df = df.copy()
     df.loc[:, new_date_col_name] = df[time_column].dt.date
     df.loc[:, new_hour_col_name] = df[time_column].dt.hour
+    df.loc[:, new_year_col_name] = df[time_column].dt.year
 
-    print(f"[INFO] Extracted 'date' and 'hour' from '{time_column}'.")
+    print(f"[INFO] Extracted 'date', 'hour', and 'year' from '{time_column}'.")
     return df
 
 def factorize_column(df: pd.DataFrame, column: str, new_column: str) -> pd.DataFrame:
