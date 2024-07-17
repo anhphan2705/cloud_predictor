@@ -27,9 +27,14 @@ def create_trainer(config, logger, checkpoint_callback, early_stop_callback, lr_
     Trainer: The PyTorch Lightning trainer.
     """
     training_device = "gpu" if torch.cuda.is_available() else "cpu"
-    print(f"[INFO] Training device: {training_device}")
+    print(f"[INFO] Training device: {training_device}") 
 
     train_config = config['training']
+
+    callbacks = [lr_logger, checkpoint_callback, early_stop_callback, progress_bar]
+    for callback in callbacks:
+        if callback is None:
+            callbacks.remove(callback)
 
     return pl.Trainer(
         max_epochs=train_config['max_epochs'],
@@ -38,11 +43,11 @@ def create_trainer(config, logger, checkpoint_callback, early_stop_callback, lr_
         gradient_clip_val=train_config['gradient_clip_val'],
         limit_train_batches=train_config['limit_train_batches'],
         log_every_n_steps=train_config['log_every_n_steps'],
-        callbacks=[lr_logger, early_stop_callback, checkpoint_callback, progress_bar],
+        callbacks=callbacks,
         logger=logger,
     )
 
-def initialize_model(train_dataloader, params, train_config):
+def initialize_model(train_dataloader, params, train_config, target_count):
     """
     Initialize the Temporal Fusion Transformer model from dataset and parameters.
 
@@ -58,10 +63,10 @@ def initialize_model(train_dataloader, params, train_config):
         train_dataloader.dataset,
         learning_rate=params.get("learning_rate", train_config['learning_rate']),
         hidden_size=params.get("hidden_size", train_config['hidden_size']),
-        attention_head_size=params.get("attention_head_size",train_config['attention_head_size']),
+        attention_head_size=params.get("attention_head_size", train_config['attention_head_size']),
         dropout=params.get("dropout", train_config['dropout']),
         hidden_continuous_size=params.get("hidden_continuous_size", train_config['hidden_continuous_size']),
-        output_size=[7],  # number of quantiles
+        output_size= [7] * target_count,
         loss=QuantileLoss(),
         log_interval=train_config['log_every_n_steps'],
         reduce_on_plateau_patience=train_config['reduce_on_plateau_patience'],
@@ -87,7 +92,7 @@ def training(train_dataloader: DataLoader, val_dataloader: DataLoader, best_para
     training_dir, checkpoints_dir, logs_dir = create_training_directory(config['checkpoints']['base_dir'], config['checkpoints']['training_dir'])
 
     # Create model
-    tft = initialize_model(train_dataloader, best_params, config['training'])
+    tft = initialize_model(train_dataloader, best_params, config['training'], len(config["data"]["target_vars"]))
 
     # Define callbacks and logger
     checkpoint_callback = ModelCheckpoint(
