@@ -61,27 +61,30 @@ def create_cds_time_series_datasets(df: pd.DataFrame, min_encoder_length: int, m
     }
 
     if mode == 'train':
-        print(f'[DEBUG] time_idx range: ({df["time_idx"].min()}, {df["time_idx"].max()})')
         training_cutoff = df["time_idx"].max() - max_prediction_length
         print(f'[DEBUG] Training cutoff at time_idx: {training_cutoff}')
 
         training_df = df[df["time_idx"] <= training_cutoff]
-        validation_df = df[df["time_idx"] > training_cutoff]
+        # validation_df = df[df["time_idx"] > training_cutoff]
         print(f'[DEBUG] training_df size: {len(training_df)}')
-        print(f'[DEBUG] validation_df size: {len(validation_df)}')
+        # print(f'[DEBUG] validation_df size: {len(validation_df)}')
 
         training_dataset = TimeSeriesDataSet(training_df, **common_params)
+        print(f'[DEBUG] Training dataset created.')
         validation_dataset = TimeSeriesDataSet.from_dataset(
             training_dataset,
-            validation_df,
+            # validation_df,
+            df,
             predict=True,
             stop_randomization=True
         )
+        print(f'[DEBUG] Validation dataset created.')
 
         return training_dataset, validation_dataset
 
     elif mode == 'eval':
         eval_dataset = TimeSeriesDataSet(df, **common_params)
+        print(f'[DEBUG] Evaluation dataset created.')
 
         return eval_dataset
 

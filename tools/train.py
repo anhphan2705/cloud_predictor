@@ -38,7 +38,7 @@ def training(train_dataloader: DataLoader, val_dataloader: DataLoader, best_para
         attention_head_size=best_params.get("attention_head_size", config['training']['attention_head_size']),
         dropout=best_params.get("dropout", config['training']['dropout']),
         hidden_continuous_size=best_params.get("hidden_continuous_size", config['training']['hidden_continuous_size']),
-        output_size=7,
+        output_size=[7],
         loss=QuantileLoss(),
         log_interval=10,
         reduce_on_plateau_patience=config['training']['reduce_on_plateau_patience'],
@@ -100,7 +100,7 @@ def train_pipeline(train_dataloader: DataLoader, val_dataloader: DataLoader, con
     """
     if config['hyperparameter_tuning']['enable']:
         # Tune hyperparameters
-        best_params = tune_hyperparameters(train_dataloader, val_dataloader, n_trials=config['hyperparameter_tuning']['n_trials'])
+        best_params = tune_hyperparameters(train_dataloader, val_dataloader, **config['hyperparameter_tuning'])
     else:
         best_params = {}
 
