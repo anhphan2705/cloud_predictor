@@ -2,11 +2,11 @@ import optuna
 import pickle
 from optuna.trial import Trial
 from torch.utils.data import DataLoader
-from pytorch_lightning.callbacks.progress import TQDMProgressBar
-from pytorch_lightning.callbacks import EarlyStopping, LearningRateMonitor
-from pytorch_lightning.loggers import TensorBoardLogger
+from lightning.pytorch.callbacks.progress import TQDMProgressBar
+from lightning.pytorch.callbacks import EarlyStopping, LearningRateMonitor
+from lightning.pytorch.loggers import TensorBoardLogger
 
-def objective(trial: Trial, train_dataloader: DataLoader, val_dataloader: DataLoader, config: dict, trainer_func, model_func) -> float:
+def objective(trial: Trial, train_dataloader: DataLoader, val_dataloader: DataLoader, config: dict, trainer_func: callable, model_func: callable) -> float:
     """
     Objective function for Optuna hyperparameter tuning.
 
@@ -57,7 +57,7 @@ def objective(trial: Trial, train_dataloader: DataLoader, val_dataloader: DataLo
     # Return the validation loss
     return trainer.callback_metrics["val_loss"].item()
 
-def tune_hyperparameters(train_dataloader: DataLoader, val_dataloader: DataLoader, config: dict, trainer_func, model_func) -> dict:
+def tune_hyperparameters(train_dataloader: DataLoader, val_dataloader: DataLoader, config: dict, trainer_func: callable, model_func: callable) -> dict:
     """
     Tune hyperparameters using Optuna.
 

@@ -2,13 +2,12 @@ import os
 import torch
 import lightning.pytorch as pl
 from torch.utils.data import DataLoader
-from pytorch_lightning.callbacks.progress import TQDMProgressBar
+from lightning.pytorch.callbacks.progress import TQDMProgressBar
 from lightning.pytorch.callbacks.early_stopping import EarlyStopping
 from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint
 from lightning.pytorch.loggers import TensorBoardLogger
 from pytorch_forecasting import TemporalFusionTransformer
 from pytorch_forecasting.metrics import QuantileLoss
-from pytorch_lightning import Trainer
 from tools.hyperparam_tuning import tune_hyperparameters
 from utils.file_utils import create_training_directory
 
@@ -32,7 +31,7 @@ def create_trainer(config, logger, checkpoint_callback, early_stop_callback, lr_
 
     train_config = config['training']
 
-    return Trainer(
+    return pl.Trainer(
         max_epochs=train_config['max_epochs'],
         accelerator=training_device,
         devices=1,
