@@ -8,8 +8,65 @@ from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint
 from lightning.pytorch.loggers import TensorBoardLogger
 from pytorch_forecasting import TemporalFusionTransformer
 from pytorch_forecasting.metrics import QuantileLoss
+from pytorch_lightning import Trainer
 from tools.hyperparam_tuning import tune_hyperparameters
 from utils.file_utils import create_training_directory
+
+def create_trainer(config, logger, checkpoint_callback, early_stop_callback, lr_logger, progress_bar):
+    """
+    Create a PyTorch Lightning trainer with specified configuration and callbacks.
+
+    Parameters:
+    config (dict): Dictionary containing training configuration parameters.
+    logger (TensorBoardLogger): Logger for logging training process.
+    checkpoint_callback (ModelCheckpoint): Callback for saving model checkpoints.
+    early_stop_callback (EarlyStopping): Callback for early stopping.
+    lr_logger (LearningRateMonitor): Callback for monitoring learning rate.
+    progress_bar (TQDMProgressBar): Callback for progress bar.
+
+    Returns:
+    Trainer: The PyTorch Lightning trainer.
+    """
+    training_device = "gpu" if torch.cuda.is_available() else "cpu"
+    print(f"[INFO] Training device: {training_device}")
+
+    train_config = config['training']
+
+    return Trainer(
+        max_epochs=train_config['max_epochs'],
+        accelerator=training_device,
+        devices=1,
+        gradient_clip_val=train_config['gradient_clip_val'],
+        limit_train_batches=train_config['limit_train_batches'],
+        log_every_n_steps=train_config['log_every_n_steps'],
+        callbacks=[lr_logger, early_stop_callback, checkpoint_callback, progress_bar],
+        logger=logger,
+    )
+
+def initialize_model(train_dataloader, params, train_config):
+    """
+    Initialize the Temporal Fusion Transformer model from dataset and parameters.
+
+    Parameters:
+    train_dataloader (DataLoader): DataLoader for the training data.
+    params (dict): Dictionary containing model parameters.
+    config (dict): Dictionary containing training configuration parameters.
+
+    Returns:
+    TemporalFusionTransformer: Initialized Temporal Fusion Transformer model.
+    """
+    return TemporalFusionTransformer.from_dataset(
+        train_dataloader.dataset,
+        learning_rate=params.get("learning_rate", train_config['learning_rate']),
+        hidden_size=params.get("hidden_size", train_config['hidden_size']),
+        attention_head_size=params.get("attention_head_size",train_config['attention_head_size']),
+        dropout=params.get("dropout", train_config['dropout']),
+        hidden_continuous_size=params.get("hidden_continuous_size", train_config['hidden_continuous_size']),
+        output_size=[7],  # number of quantiles
+        loss=QuantileLoss(),
+        log_interval=train_config['log_every_n_steps'],
+        reduce_on_plateau_patience=train_config['reduce_on_plateau_patience'],
+    )
 
 def training(train_dataloader: DataLoader, val_dataloader: DataLoader, best_params: dict, config: dict) -> pl.Trainer:
     """
@@ -28,21 +85,10 @@ def training(train_dataloader: DataLoader, val_dataloader: DataLoader, best_para
     trainer = final_training(train_dataloader, val_dataloader, best_params, config)
     """
     # Create directories for checkpoints and logs
-    training_dir, checkpoints_dir, logs_dir = create_training_directory()
+    training_dir, checkpoints_dir, logs_dir = create_training_directory(config['checkpoints']['base_dir'], config['checkpoints']['training_dir'])
 
-    # Create Temporal Fusion Transformer model
-    tft = TemporalFusionTransformer.from_dataset(
-        train_dataloader.dataset,
-        learning_rate=best_params.get("learning_rate", config['training']['learning_rate']),
-        hidden_size=best_params.get("hidden_size", config['training']['hidden_size']),
-        attention_head_size=best_params.get("attention_head_size", config['training']['attention_head_size']),
-        dropout=best_params.get("dropout", config['training']['dropout']),
-        hidden_continuous_size=best_params.get("hidden_continuous_size", config['training']['hidden_continuous_size']),
-        output_size=[7],
-        loss=QuantileLoss(),
-        log_interval=10,
-        reduce_on_plateau_patience=config['training']['reduce_on_plateau_patience'],
-    )
+    # Create model
+    tft = initialize_model(train_dataloader, best_params, config['training'])
 
     # Define callbacks and logger
     checkpoint_callback = ModelCheckpoint(
@@ -57,17 +103,8 @@ def training(train_dataloader: DataLoader, val_dataloader: DataLoader, best_para
     progress_bar = TQDMProgressBar(refresh_rate=1)
     logger = TensorBoardLogger(save_dir=logs_dir, name=config['logging']['log_name'])
 
-    # Create PyTorch Lightning trainer
-    trainer = pl.Trainer(
-        max_epochs=config['training']['max_epochs'],
-        accelerator="gpu" if torch.cuda.is_available() else "cpu",
-        devices=1,
-        gradient_clip_val=config['training']['gradient_clip_val'],
-        limit_train_batches=config['training']['limit_train_batches'],
-        log_every_n_steps=config['training']['log_every_n_steps'],
-        callbacks=[lr_logger, early_stop_callback, checkpoint_callback, progress_bar],
-        logger=logger,
-    )
+    # Create trainer
+    trainer = create_trainer(config, logger, checkpoint_callback, early_stop_callback, lr_logger, progress_bar)
 
     print(f"[INFO] Loaded model with {tft.size()} parameters.\n{tft}")
     print(f"[INFO] Starting training...")
@@ -100,7 +137,7 @@ def train_pipeline(train_dataloader: DataLoader, val_dataloader: DataLoader, con
     """
     if config['hyperparameter_tuning']['enable']:
         # Tune hyperparameters
-        best_params = tune_hyperparameters(train_dataloader, val_dataloader, **config['hyperparameter_tuning'])
+        best_params = tune_hyperparameters(train_dataloader, val_dataloader, config, trainer_func=create_trainer, model_func=initialize_model)
     else:
         best_params = {}
 
