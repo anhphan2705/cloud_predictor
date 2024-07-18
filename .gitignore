@@ -164,3 +164,4 @@ cython_debug/
 weather_env
 data/*
 notebooks/*
+models/*

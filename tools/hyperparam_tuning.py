@@ -6,7 +6,7 @@ from lightning.pytorch.callbacks.progress import TQDMProgressBar
 from lightning.pytorch.callbacks import EarlyStopping, LearningRateMonitor
 from lightning.pytorch.loggers import TensorBoardLogger
 
-def objective(trial: Trial, train_dataloader: DataLoader, val_dataloader: DataLoader, config: dict, trainer_func: callable, model_func: callable) -> float:
+def objective(trial: Trial, train_dataloader: DataLoader, val_dataloader: DataLoader, logs_dir: str, config: dict, trainer_func: callable, model_func: callable) -> float:
     """
     Objective function for Optuna hyperparameter tuning.
 
@@ -14,6 +14,7 @@ def objective(trial: Trial, train_dataloader: DataLoader, val_dataloader: DataLo
     trial (optuna.trial.Trial): A trial object from Optuna for hyperparameter optimization.
     train_dataloader (DataLoader): DataLoader for the training data.
     val_dataloader (DataLoader): DataLoader for the validation data.
+    logs_dir (str): The directory to save logs.
     config (dict): Dictionary containing configuration parameters.
     trainer_func (callable): Function to create a PyTorch Lightning trainer.
     model_func (callable): Function to initialize the Temporal Fusion Transformer model.
@@ -45,7 +46,7 @@ def objective(trial: Trial, train_dataloader: DataLoader, val_dataloader: DataLo
     # Define callbacks and logger
     early_stop_callback = EarlyStopping(monitor="val_loss", min_delta=hyperparameter_tuning_config['early_stop_min_delta'], patience=hyperparameter_tuning_config['early_stop_patience'], verbose=False, mode="min")
     lr_logger = LearningRateMonitor()
-    logger = TensorBoardLogger("lightning_logs")
+    logger = TensorBoardLogger(save_dir=logs_dir, name="tuning_logs")
     progress_bar = TQDMProgressBar(refresh_rate=1)
 
     # Create trainer
@@ -57,13 +58,14 @@ def objective(trial: Trial, train_dataloader: DataLoader, val_dataloader: DataLo
     # Return the validation loss
     return trainer.callback_metrics["val_loss"].item()
 
-def tune_hyperparameters(train_dataloader: DataLoader, val_dataloader: DataLoader, config: dict, trainer_func: callable, model_func: callable) -> dict:
+def tune_hyperparameters(train_dataloader: DataLoader, val_dataloader: DataLoader, logs_dir: str, config: dict, trainer_func: callable, model_func: callable) -> dict:
     """
     Tune hyperparameters using Optuna.
 
     Parameters:
     train_dataloader (DataLoader): DataLoader for the training data.
     val_dataloader (DataLoader): DataLoader for the validation data.
+    logs_dir (str): The directory to save logs.
     config (dict): Dictionary containing configuration parameters.
     trainer_func (callable): Function to create a PyTorch Lightning trainer.
     model_func (callable): Function to initialize the Temporal Fusion Transformer model.
@@ -76,7 +78,7 @@ def tune_hyperparameters(train_dataloader: DataLoader, val_dataloader: DataLoade
     study = optuna.create_study(direction="minimize")
     
     # Optimize the study
-    study.optimize(lambda trial: objective(trial, train_dataloader, val_dataloader, config, trainer_func, model_func))
+    study.optimize(lambda trial: objective(trial, train_dataloader, val_dataloader, logs_dir, config, trainer_func, model_func))
 
     # Save the study results to a pickle file
     with open("study.pkl", "wb") as fout:

@@ -6,12 +6,12 @@ from lightning.pytorch.callbacks.progress import TQDMProgressBar
 from lightning.pytorch.callbacks.early_stopping import EarlyStopping
 from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint
 from lightning.pytorch.loggers import TensorBoardLogger
-from pytorch_forecasting import TemporalFusionTransformer
-from pytorch_forecasting.metrics import QuantileLoss
+from pytorch_forecasting import Baseline, TemporalFusionTransformer
+from pytorch_forecasting.metrics import MAE, QuantileLoss
 from tools.hyperparam_tuning import tune_hyperparameters
 from utils.file_utils import create_training_directory
 
-def create_trainer(config, logger, checkpoint_callback, early_stop_callback, lr_logger, progress_bar):
+def create_trainer(config: dict, logger: TensorBoardLogger, checkpoint_callback: ModelCheckpoint, early_stop_callback: EarlyStopping, lr_logger: LearningRateMonitor, progress_bar: TQDMProgressBar) -> pl.Trainer:
     """
     Create a PyTorch Lightning trainer with specified configuration and callbacks.
 
@@ -39,6 +39,7 @@ def create_trainer(config, logger, checkpoint_callback, early_stop_callback, lr_
     return pl.Trainer(
         max_epochs=train_config['max_epochs'],
         accelerator=training_device,
+        strategy='ddp_spawn',  # For Window users, comment out if Linux
         devices=1,
         gradient_clip_val=train_config['gradient_clip_val'],
         limit_train_batches=train_config['limit_train_batches'],
@@ -47,14 +48,15 @@ def create_trainer(config, logger, checkpoint_callback, early_stop_callback, lr_
         logger=logger,
     )
 
-def initialize_model(train_dataloader, params, train_config, target_count):
+def initialize_model(train_dataloader: DataLoader, params: dict, train_config: dict, target_count: int):
     """
     Initialize the Temporal Fusion Transformer model from dataset and parameters.
 
     Parameters:
     train_dataloader (DataLoader): DataLoader for the training data.
     params (dict): Dictionary containing model parameters.
-    config (dict): Dictionary containing training configuration parameters.
+    train_config (dict): Dictionary containing training configuration parameters.
+    target_count (int): The number of target variables.
 
     Returns:
     TemporalFusionTransformer: Initialized Temporal Fusion Transformer model.
@@ -105,7 +107,7 @@ def training(train_dataloader: DataLoader, val_dataloader: DataLoader, best_para
     early_stop_callback = EarlyStopping(monitor="val_loss", min_delta=config['training']['early_stop_min_delta'], patience=config['training']['early_stop_patience'], verbose=False, mode="min")
     lr_logger = LearningRateMonitor()
     progress_bar = TQDMProgressBar(refresh_rate=1)
-    logger = TensorBoardLogger(save_dir=logs_dir, name=config['logging']['log_name'])
+    logger = TensorBoardLogger(save_dir=logs_dir, name="training_logs")
 
     # Create trainer
     trainer = create_trainer(config, logger, checkpoint_callback, early_stop_callback, lr_logger, progress_bar)
@@ -124,13 +126,14 @@ def training(train_dataloader: DataLoader, val_dataloader: DataLoader, best_para
 
     return trainer
 
-def train_pipeline(train_dataloader: DataLoader, val_dataloader: DataLoader, config: dict) -> TemporalFusionTransformer:
+def train_pipeline(train_dataloader: DataLoader, val_dataloader: DataLoader, logs_dir: str, config: dict) -> TemporalFusionTransformer:
     """
     Execute the training pipeline, including hyperparameter tuning and final training.
 
     Parameters:
     train_dataloader (DataLoader): DataLoader for the training data.
     val_dataloader (DataLoader): DataLoader for the validation data.
+    logs_dir (str): The directory to save logs.
     config (dict): Dictionary containing training and hyperparameter tuning configuration parameters.
 
     Returns:
@@ -141,7 +144,7 @@ def train_pipeline(train_dataloader: DataLoader, val_dataloader: DataLoader, con
     """
     if config['hyperparameter_tuning']['enable']:
         # Tune hyperparameters
-        best_params = tune_hyperparameters(train_dataloader, val_dataloader, config, trainer_func=create_trainer, model_func=initialize_model)
+        best_params = tune_hyperparameters(train_dataloader, val_dataloader, logs_dir, config, trainer_func=create_trainer, model_func=initialize_model)
     else:
         best_params = {}
 

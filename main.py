@@ -32,7 +32,7 @@ def main(config):
         )
 
         # Train the model
-        train_pipeline(train_dataloader, val_dataloader, config)
+        train_pipeline(train_dataloader, val_dataloader, logs_dir, config)
 
     elif args.mode == 'eval':
         evaluation_dir = create_evaluation_directory(base_dir=checkpoints_config['base_dir'], evaluation_subdir=checkpoints_config['evaluation_dir'])
