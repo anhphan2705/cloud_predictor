@@ -1,7 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-import numpy as np
 import seaborn as sns
+import os
 
 def df_visualizer(df: pd.DataFrame):
     """
@@ -99,3 +99,29 @@ def convert_to_time_idx(years: int = 0, days: int = 0, hours: int = 0, step: int
     total_days = years * 365 + days  # Assuming no leap years for simplicity
     total_hours = total_days * 24 + hours
     return total_hours // step
+
+def plot_predictions(predictions, save_dir, show=False, title='Model Predictions vs Actual Data'):
+    """
+    Plot the actual data, trained model predictions, and baseline model predictions.
+
+    Parameters:
+    predictions (dict): A dictionary containing the actual data, trained model predictions, and baseline model predictions.
+    config (dict): Dictionary containing configuration parameters.
+    """
+    actuals = predictions["actuals"]
+    trained_model_predictions = predictions["trained_model_predictions"]
+    baseline_model_predictions = predictions["baseline_model_predictions"]
+
+    plt.figure(figsize=(15, 7))
+    plt.plot(actuals, label='Actual Data', color='blue')
+    plt.plot(trained_model_predictions, label='Trained Model Predictions', color='green')
+    plt.plot(baseline_model_predictions, label='Baseline Model Predictions', color='red')
+    
+    plt.title('Model Predictions vs Actual Data')
+    plt.xlabel('Time')
+    plt.ylabel('Value')
+    plt.legend()
+    plt.grid(True)
+    if show:
+        plt.show()
+    plt.savefig(os.path.join(save_dir, 'model_vs_baseline_vs_actuals.png'))

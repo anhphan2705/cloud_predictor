@@ -7,9 +7,32 @@ from lightning.pytorch.callbacks.early_stopping import EarlyStopping
 from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint
 from lightning.pytorch.loggers import TensorBoardLogger
 from pytorch_forecasting import Baseline, TemporalFusionTransformer
-from pytorch_forecasting.metrics import MAE, QuantileLoss
+from pytorch_forecasting.metrics import MAE, RMSE, QuantileLoss
 from tools.hyperparam_tuning import tune_hyperparameters
 from utils.file_utils import create_training_directory
+from utils.data_visualization import plot_predictions
+
+def get_predictions(trained_model, baseline_model, val_dataloader):
+    """
+    Get predictions from the trained model and the baseline model.
+
+    Parameters:
+    trained_model (TemporalFusionTransformer): The trained Temporal Fusion Transformer model.
+    baseline_model (Baseline): The baseline model.
+    val_dataloader (DataLoader): DataLoader for the validation data.
+
+    Returns:
+    dict: A dictionary containing the actual data, trained model predictions, and baseline model predictions.
+    """
+    actuals = torch.cat([y[0] for x, y in iter(val_dataloader)])
+    trained_model_predictions = trained_model.predict(val_dataloader)
+    baseline_model_predictions = baseline_model.predict(val_dataloader)
+    
+    return {
+        "actuals": actuals,
+        "trained_model_predictions": trained_model_predictions,
+        "baseline_model_predictions": baseline_model_predictions
+    }
 
 def create_trainer(config: dict, logger: TensorBoardLogger, checkpoint_callback: ModelCheckpoint, early_stop_callback: EarlyStopping, lr_logger: LearningRateMonitor, progress_bar: TQDMProgressBar) -> pl.Trainer:
     """
@@ -39,7 +62,7 @@ def create_trainer(config: dict, logger: TensorBoardLogger, checkpoint_callback:
     return pl.Trainer(
         max_epochs=train_config['max_epochs'],
         accelerator=training_device,
-        strategy='ddp_spawn',  # For Window users, comment out if Linux
+        strategy='ddp_spawn',  # For Windows users, comment out if Linux
         devices=1,
         gradient_clip_val=train_config['gradient_clip_val'],
         limit_train_batches=train_config['limit_train_batches'],
@@ -61,14 +84,27 @@ def initialize_model(train_dataloader: DataLoader, params: dict, train_config: d
     Returns:
     TemporalFusionTransformer: Initialized Temporal Fusion Transformer model.
     """
-    return TemporalFusionTransformer.from_dataset(
+    class CustomTemporalFusionTransformer(TemporalFusionTransformer):
+        def validation_epoch_end(self, outputs):
+            val_loss_mean = torch.stack([x['val_loss'] for x in outputs]).mean()
+            rmse = RMSE()(torch.cat([x['pred'] for x in outputs]), torch.cat([x['target'] for x in outputs]))
+            mae = MAE()(torch.cat([x['pred'] for x in outputs]), torch.cat([x['target'] for x in outputs]))
+            self.log('val_loss', val_loss_mean, sync_dist=True)
+            self.log('val_RMSE', rmse, sync_dist=True)
+            self.log('val_MAE', mae, sync_dist=True)
+
+        def training_epoch_end(self, outputs):
+            train_loss_mean = torch.stack([x['loss'] for x in outputs]).mean()
+            self.log('train_loss', train_loss_mean, sync_dist=True)
+
+    return CustomTemporalFusionTransformer.from_dataset(
         train_dataloader.dataset,
         learning_rate=params.get("learning_rate", train_config['learning_rate']),
         hidden_size=params.get("hidden_size", train_config['hidden_size']),
         attention_head_size=params.get("attention_head_size", train_config['attention_head_size']),
         dropout=params.get("dropout", train_config['dropout']),
         hidden_continuous_size=params.get("hidden_continuous_size", train_config['hidden_continuous_size']),
-        output_size= [7] * target_count,
+        output_size=[7] * target_count,
         loss=QuantileLoss(),
         log_interval=train_config['log_every_n_steps'],
         reduce_on_plateau_patience=train_config['reduce_on_plateau_patience'],
@@ -90,17 +126,13 @@ def training(train_dataloader: DataLoader, val_dataloader: DataLoader, best_para
     Example Usage:
     trainer = final_training(train_dataloader, val_dataloader, best_params, config)
     """
-    # Create directories for checkpoints and logs
     training_dir, checkpoints_dir, logs_dir = create_training_directory(config['checkpoints']['base_dir'], config['checkpoints']['training_dir'])
-
-    # Create model
     tft = initialize_model(train_dataloader, best_params, config['training'], len(config["data"]["target_vars"]))
 
-    # Define callbacks and logger
     checkpoint_callback = ModelCheckpoint(
         dirpath=checkpoints_dir,
         filename=config['checkpoints']['checkpoint_filename'],
-        save_top_k=-1,  # Save all checkpoints
+        save_top_k=-1,
         monitor='val_loss',
         mode='min'
     )
@@ -109,22 +141,49 @@ def training(train_dataloader: DataLoader, val_dataloader: DataLoader, best_para
     progress_bar = TQDMProgressBar(refresh_rate=1)
     logger = TensorBoardLogger(save_dir=logs_dir, name="training_logs")
 
-    # Create trainer
     trainer = create_trainer(config, logger, checkpoint_callback, early_stop_callback, lr_logger, progress_bar)
 
     print(f"[INFO] Loaded model with {tft.size()} parameters.\n{tft}")
     print(f"[INFO] Starting training...")
 
-    # Train the model
     trainer.fit(tft, train_dataloader, val_dataloader)
 
-    # Save the best model
     best_model_path = checkpoint_callback.best_model_path
     final_best_model_path = os.path.join(training_dir, config['checkpoints']['best_model_filename'])
+    
     if best_model_path:
         torch.save(torch.load(best_model_path), final_best_model_path)
 
     return trainer
+
+def evaluate_baseline(train_dataloader: DataLoader, val_dataloader: DataLoader, config: dict) -> dict:
+    """
+    Evaluate a baseline model for comparison.
+
+    Parameters:
+    train_dataloader (DataLoader): DataLoader for the training data.
+    val_dataloader (DataLoader): DataLoader for the validation data.
+    config (dict): Dictionary containing configuration parameters.
+
+    Returns:
+    dict: The validation results of the baseline model.
+    """
+    baseline_model = Baseline.from_dataset(train_dataloader.dataset)
+    trainer = pl.Trainer(
+        max_epochs=1,
+        logger=False,
+        checkpoint_callback=False,
+    )
+    # Set up metrics for evaluation
+    baseline_model.validation_metrics = {
+        'val_loss': QuantileLoss(),
+        'val_MAE': MAE(),
+        'val_RMSE': RMSE()
+    }
+    val_result = trainer.validate(baseline_model, val_dataloader, verbose=False)
+    print(f"[INFO] Baseline model validation results: {val_result}")
+
+    return val_result
 
 def train_pipeline(train_dataloader: DataLoader, val_dataloader: DataLoader, logs_dir: str, config: dict) -> TemporalFusionTransformer:
     """
@@ -154,5 +213,14 @@ def train_pipeline(train_dataloader: DataLoader, val_dataloader: DataLoader, log
     # Load the best model w.r.t. the validation loss
     best_model_path = trainer.checkpoint_callback.best_model_path
     best_tft = TemporalFusionTransformer.load_from_checkpoint(best_model_path)
-    
+
+    # Evaluate baseline model
+    baseline_result = evaluate_baseline(train_dataloader, val_dataloader, config)
+
+    # Get predictions
+    predictions = get_predictions(best_tft, baseline_result['model'], val_dataloader)
+
+    # Plot predictions
+    plot_predictions(predictions, save_dir=logs_dir)
+
     return best_tft
