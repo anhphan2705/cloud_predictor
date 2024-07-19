@@ -55,9 +55,7 @@ def create_trainer(config: dict, logger: TensorBoardLogger, checkpoint_callback:
     train_config = config['training']
 
     callbacks = [lr_logger, checkpoint_callback, early_stop_callback, progress_bar]
-    for callback in callbacks:
-        if callback is None:
-            callbacks.remove(callback)
+    callbacks = [callback for callback in callbacks if callback is not None]
 
     return pl.Trainer(
         max_epochs=train_config['max_epochs'],
@@ -84,20 +82,7 @@ def initialize_model(train_dataloader: DataLoader, params: dict, train_config: d
     Returns:
     TemporalFusionTransformer: Initialized Temporal Fusion Transformer model.
     """
-    class CustomTemporalFusionTransformer(TemporalFusionTransformer):
-        def validation_epoch_end(self, outputs):
-            val_loss_mean = torch.stack([x['val_loss'] for x in outputs]).mean()
-            rmse = RMSE()(torch.cat([x['pred'] for x in outputs]), torch.cat([x['target'] for x in outputs]))
-            mae = MAE()(torch.cat([x['pred'] for x in outputs]), torch.cat([x['target'] for x in outputs]))
-            self.log('val_loss', val_loss_mean, sync_dist=True)
-            self.log('val_RMSE', rmse, sync_dist=True)
-            self.log('val_MAE', mae, sync_dist=True)
-
-        def training_epoch_end(self, outputs):
-            train_loss_mean = torch.stack([x['loss'] for x in outputs]).mean()
-            self.log('train_loss', train_loss_mean, sync_dist=True)
-
-    return CustomTemporalFusionTransformer.from_dataset(
+    return TemporalFusionTransformer.from_dataset(
         train_dataloader.dataset,
         learning_rate=params.get("learning_rate", train_config['learning_rate']),
         hidden_size=params.get("hidden_size", train_config['hidden_size']),
@@ -150,13 +135,13 @@ def training(train_dataloader: DataLoader, val_dataloader: DataLoader, best_para
 
     best_model_path = checkpoint_callback.best_model_path
     final_best_model_path = os.path.join(training_dir, config['checkpoints']['best_model_filename'])
-    
+
     if best_model_path:
         torch.save(torch.load(best_model_path), final_best_model_path)
 
     return trainer
 
-def evaluate_baseline(train_dataloader: DataLoader, val_dataloader: DataLoader, config: dict) -> dict:
+def evaluate_baseline(train_dataloader: DataLoader, val_dataloader: DataLoader, config: dict) -> Baseline:
     """
     Evaluate a baseline model for comparison.
 
@@ -166,24 +151,18 @@ def evaluate_baseline(train_dataloader: DataLoader, val_dataloader: DataLoader, 
     config (dict): Dictionary containing configuration parameters.
 
     Returns:
-    dict: The validation results of the baseline model.
+    Baseline: The baseline model.
     """
     baseline_model = Baseline.from_dataset(train_dataloader.dataset)
     trainer = pl.Trainer(
         max_epochs=1,
         logger=False,
-        checkpoint_callback=False,
+        enable_checkpointing=False,
     )
-    # Set up metrics for evaluation
-    baseline_model.validation_metrics = {
-        'val_loss': QuantileLoss(),
-        'val_MAE': MAE(),
-        'val_RMSE': RMSE()
-    }
     val_result = trainer.validate(baseline_model, val_dataloader, verbose=False)
     print(f"[INFO] Baseline model validation results: {val_result}")
 
-    return val_result
+    return baseline_model
 
 def train_pipeline(train_dataloader: DataLoader, val_dataloader: DataLoader, logs_dir: str, config: dict) -> TemporalFusionTransformer:
     """
@@ -202,25 +181,19 @@ def train_pipeline(train_dataloader: DataLoader, val_dataloader: DataLoader, log
     train_pipeline(train_dataloader, val_dataloader, config)
     """
     if config['hyperparameter_tuning']['enable']:
-        # Tune hyperparameters
         best_params = tune_hyperparameters(train_dataloader, val_dataloader, logs_dir, config, trainer_func=create_trainer, model_func=initialize_model)
     else:
         best_params = {}
 
-    # Perform final training with the best hyperparameters
     trainer = training(train_dataloader, val_dataloader, best_params, config)
 
-    # Load the best model w.r.t. the validation loss
     best_model_path = trainer.checkpoint_callback.best_model_path
     best_tft = TemporalFusionTransformer.load_from_checkpoint(best_model_path)
 
-    # Evaluate baseline model
-    baseline_result = evaluate_baseline(train_dataloader, val_dataloader, config)
+    baseline_model = evaluate_baseline(train_dataloader, val_dataloader, config)
 
-    # Get predictions
-    predictions = get_predictions(best_tft, baseline_result['model'], val_dataloader)
+    predictions = get_predictions(best_tft, baseline_model, val_dataloader)
 
-    # Plot predictions
     plot_predictions(predictions, save_dir=logs_dir)
 
     return best_tft
