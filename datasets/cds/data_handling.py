@@ -56,7 +56,8 @@ def create_cds_time_series_datasets(df: pd.DataFrame, min_encoder_length: int, m
         'static_categoricals': ["latitude", "longitude"],
         'time_varying_known_reals': ["time_idx"],  # Known covariates
         'time_varying_unknown_reals': targets,
-        'target_normalizer': MultiNormalizer([GroupNormalizer(groups=["latitude", "longitude"])] * len(targets)),
+        # 'target_normalizer': MultiNormalizer([GroupNormalizer(groups=["latitude", "longitude"])] * len(targets)),
+        'target_normalizer': GroupNormalizer(groups=["latitude", "longitude"], transformation="softplus"),
         'allow_missing_timesteps': False,  # Allow missing timesteps
     }
 

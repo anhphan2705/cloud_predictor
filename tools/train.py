@@ -24,9 +24,9 @@ def get_predictions(trained_model, baseline_model, val_dataloader):
     Returns:
     dict: A dictionary containing the actual data, trained model predictions, and baseline model predictions.
     """
-    actuals = torch.cat([y[0] for x, y in iter(val_dataloader)])
-    trained_model_predictions = trained_model.predict(val_dataloader)
-    baseline_model_predictions = baseline_model.predict(val_dataloader)
+    actuals = torch.cat([y[0] for x, y in iter(val_dataloader)]).cpu.numpy()
+    trained_model_predictions = trained_model.predict(val_dataloader).cpu().numpy()
+    baseline_model_predictions = baseline_model.predict(val_dataloader).cpu().numpy()
     
     return {
         "actuals": actuals,
@@ -69,7 +69,7 @@ def create_trainer(config: dict, logger: TensorBoardLogger, checkpoint_callback:
         logger=logger,
     )
 
-def initialize_model(train_dataloader: DataLoader, params: dict, train_config: dict, target_count: int):
+def initialize_model(train_dataloader: DataLoader, params: dict, train_config: dict):
     """
     Initialize the Temporal Fusion Transformer model from dataset and parameters.
 
@@ -89,7 +89,7 @@ def initialize_model(train_dataloader: DataLoader, params: dict, train_config: d
         attention_head_size=params.get("attention_head_size", train_config['attention_head_size']),
         dropout=params.get("dropout", train_config['dropout']),
         hidden_continuous_size=params.get("hidden_continuous_size", train_config['hidden_continuous_size']),
-        output_size=[7] * target_count,
+        output_size=7,
         loss=QuantileLoss(),
         log_interval=train_config['log_every_n_steps'],
         reduce_on_plateau_patience=train_config['reduce_on_plateau_patience'],
@@ -112,7 +112,7 @@ def training(train_dataloader: DataLoader, val_dataloader: DataLoader, best_para
     trainer = final_training(train_dataloader, val_dataloader, best_params, config)
     """
     training_dir, checkpoints_dir, logs_dir = create_training_directory(config['checkpoints']['base_dir'], config['checkpoints']['training_dir'])
-    tft = initialize_model(train_dataloader, best_params, config['training'], len(config["data"]["target_vars"]))
+    tft = initialize_model(train_dataloader, best_params, config['training'])
 
     checkpoint_callback = ModelCheckpoint(
         dirpath=checkpoints_dir,
