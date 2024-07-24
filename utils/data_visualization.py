@@ -1,9 +1,12 @@
+import os
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-import os
+from pytorch_forecasting import TemporalFusionTransformer
+from torch.utils.data import DataLoader
 
-def df_visualizer(df: pd.DataFrame):
+def df_visualizer(df: pd.DataFrame) -> None:
     """
     Prints the first few rows of a DataFrame for visualization purposes.
 
@@ -31,7 +34,7 @@ def get_col_count(df: pd.DataFrame) -> pd.Series:
     print(f"[INFO] Count of non-missing values in each column:\n{df.count()}")
     return df.count()
 
-def plot_missing_data(df: pd.DataFrame):
+def plot_missing_data(df: pd.DataFrame) -> None:
     """
     Plots the missing data in a DataFrame.
 
@@ -51,7 +54,7 @@ def plot_missing_data(df: pd.DataFrame):
     plt.title("Missing Values by Column")
     plt.show()
 
-def plot_time_series(df: pd.DataFrame, latitude: float, longitude: float, variables: list, time_column: str = 'time'):
+def plot_time_series(df: pd.DataFrame, latitude: float, longitude: float, variables: list, time_column: str = 'time') -> None:
     """
     Plots the time series for specified variables at a specific latitude and longitude.
 
@@ -100,28 +103,84 @@ def convert_to_time_idx(years: int = 0, days: int = 0, hours: int = 0, step: int
     total_hours = total_days * 24 + hours
     return total_hours // step
 
-def plot_predictions(predictions, save_dir, show=False, title='Model Predictions vs Actual Data'):
+def plot_predictions(predictions: dict, save_dir: str, show: bool = True, title: str = 'Model Predictions vs Actual Data') -> None:
     """
     Plot the actual data, trained model predictions, and baseline model predictions.
 
     Parameters:
     predictions (dict): A dictionary containing the actual data, trained model predictions, and baseline model predictions.
-    config (dict): Dictionary containing configuration parameters.
+    save_dir (str): Directory to save the plot.
+    show (bool): Whether to show the plot. Default is True.
+    title (str): Title of the plot.
     """
+    print("[INFO] Plotting result...")
+    
     actuals = predictions["actuals"]
     trained_model_predictions = predictions["trained_model_predictions"]
     baseline_model_predictions = predictions["baseline_model_predictions"]
 
-    plt.figure(figsize=(15, 7))
+    # Ensure the predictions and actuals are numpy arrays
+    if not isinstance(actuals, np.ndarray):
+        actuals = np.array(actuals)
+    if not isinstance(trained_model_predictions, np.ndarray):
+        trained_model_predictions = np.array(trained_model_predictions)
+    if not isinstance(baseline_model_predictions, np.ndarray):
+        baseline_model_predictions = np.array(baseline_model_predictions)
+
+    # Check shapes of the arrays
+    print(f"Actuals shape: {actuals.shape}")
+    print(f"Trained model predictions shape: {trained_model_predictions.shape}")
+    print(f"Baseline model predictions shape: {baseline_model_predictions.shape}")
+
+    plt.figure(figsize=(25, 7))
     plt.plot(actuals, label='Actual Data', color='blue')
     plt.plot(trained_model_predictions, label='Trained Model Predictions', color='green')
     plt.plot(baseline_model_predictions, label='Baseline Model Predictions', color='red')
     
-    plt.title('Model Predictions vs Actual Data')
+    plt.title(title)
     plt.xlabel('Time')
     plt.ylabel('Value')
     plt.legend()
     plt.grid(True)
+    plt.savefig(os.path.join(save_dir, 'model_vs_baseline_vs_actuals.png'))
     if show:
         plt.show()
-    plt.savefig(os.path.join(save_dir, 'model_vs_baseline_vs_actuals.png'))
+    print(f"[INFO] Plot saved to {save_dir}")
+
+def interpret_model_predictions(model: TemporalFusionTransformer, dataloader: DataLoader, save_dir: str, model_name: str, show: bool = False) -> None:
+    """
+    Interpret model predictions by plotting the actual values against predicted values for each feature.
+    
+    This function uses the Temporal Fusion Transformer model to make predictions on the validation dataloader,
+    then calculates the prediction vs actual values for each variable and plots them. The resulting plots are saved
+    in the specified directory.
+
+    Parameters:
+    model (TemporalFusionTransformer): The trained Temporal Fusion Transformer model.
+    dataloader (DataLoader): DataLoader for the validation data.
+    save_dir (str): The directory to save interpretation plots.
+    model_name (str): The name of the model for naming the plot files.
+    show (bool, optional): If True, displays the plots. Default is False.
+
+    Usage:
+    interpret_model_predictions(trained_model, val_dataloader, './interpretation_plots', model_name="tft", show=True)
+    """
+    print("[INFO] Interpreting model predictions...")
+
+    # Get prediction results
+    val_prediction_results = model.predict(dataloader, mode="prediction", return_x=True)
+
+    # Calculate predictions vs actuals
+    predictions_vs_actuals = model.calculate_prediction_actual_by_variable(val_prediction_results.x, val_prediction_results.output)
+
+    # Get feature names
+    features = list(set(predictions_vs_actuals['support'].keys()))
+
+    # Plot and save interpretation for each feature
+    for feature in features:
+        model.plot_prediction_actual_by_variable(predictions_vs_actuals, name=feature)
+        plt.savefig(os.path.join(save_dir, f'{model_name}_{feature}_interpretation.png'))
+        if show:
+            plt.show()
+
+    print(f"[INFO] Interpretation plots saved to {save_dir}")

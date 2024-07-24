@@ -20,53 +20,72 @@ def get_file_paths(dir: str) -> list:
     print(f"[INFO] Found {len(files)} files in {dir}")
     return files
 
-def create_training_directory(base_dir: str ='./models', training_subdir: str ='trainings') -> tuple:
+def create_training_directory(log_config: dict) -> tuple:
     """
     Creates a directory structure for training, including subdirectories for checkpoints and logs.
     
     Parameters:
-    base_dir (str): The base directory where the training directories should be created. Default is './models'.
-    training_subdir (str): The subdirectory under the base directory for training sessions. Default is 'trainings'.
+    log_config (dict): A dictionary containing configuration for log directories.
 
     Usage:
-    training_dir, checkpoints_dir, logs_dir = create_training_directory(base_dir='./models', training_subdir='trainings')
+    training_dir, checkpoint_dir, log_dir, inference_dir = create_training_directory(config['logs'])
 
     Returns:
-    tuple: A tuple containing paths to the training directory, checkpoints directory, and logs directory.
+    tuple: A tuple containing paths to the training directory, checkpoints directory, logs directory, and inference result.
     """
+    base_dir = log_config['base_dir']
+    training_subdir = log_config['training_subdir']
+    inference_subdir = log_config['inference_subdir']
+    checkpoint_subdir = log_config['checkpoint_subdir']
+    log_subdir = log_config['log_subdir']
+
     now = datetime.now()
     timestamp = now.strftime("%Y%m%d_%H%M%S")
+
+    # Training Logs
     training_dir = os.path.join(base_dir, training_subdir, timestamp)
-    checkpoints_dir = os.path.join(training_dir, 'checkpoints')
-    logs_dir = os.path.join(training_dir, 'logs')
-
+    checkpoint_dir = os.path.join(training_dir, checkpoint_subdir)
+    log_dir = os.path.join(training_dir, log_subdir)
+    inference_dir = os.path.join(training_dir, inference_subdir)
+    os.makedirs(base_dir, exist_ok=True)
     os.makedirs(training_dir, exist_ok=True)
-    os.makedirs(checkpoints_dir, exist_ok=True)
-    os.makedirs(logs_dir, exist_ok=True)
+    os.makedirs(checkpoint_dir, exist_ok=True)
+    os.makedirs(log_dir, exist_ok=True)
+    os.makedirs(inference_dir, exist_ok=True)
 
-    return training_dir, checkpoints_dir, logs_dir
+    return training_dir, checkpoint_dir, log_dir, inference_dir
 
-def create_evaluation_directory(base_dir: str ='./models', evaluation_subdir: str ='evaluations') -> str:
+def create_evaluation_directory(log_config: dict) -> tuple:
     """
     Creates a directory structure for evaluation.
 
     Parameters:
-    base_dir (str): The base directory where the evaluation directories should be created. Default is './models'.
-    evaluation_subdir (str): The subdirectory under the base directory for evaluation sessions. Default is 'evaluations'.
+    log_config (dict): A dictionary containing configuration for log directories.
 
     Usage:
-    evaluation_dir = create_evaluation_directory(base_dir='./models', evaluation_subdir='evaluations')
+    evaluation_dir, log_dir, inference_dir = create_evaluation_directory(config['logs'])
 
     Returns:
-    str: The path to the created evaluation directory.
+    tuple: A tuple containing paths to the evaluation directory, logs directory, and inference result.
     """
+    base_dir = log_config['base_dir']
+    evaluation_subdir = log_config['evaluation_subdir']
+    inference_subdir = log_config['inference_subdir']
+    log_subdir = log_config['log_subdir']
+
     now = datetime.now()
     timestamp = now.strftime("%Y%m%d_%H%M%S")
+
+    # Evaluation Logs
     evaluation_dir = os.path.join(base_dir, evaluation_subdir, timestamp)
-
+    log_dir = os.path.join(evaluation_dir, log_subdir)
+    inference_dir = os.path.join(evaluation_dir, inference_subdir)
+    os.makedirs(base_dir, exist_ok=True)
     os.makedirs(evaluation_dir, exist_ok=True)
+    os.makedirs(log_dir, exist_ok=True)
+    os.makedirs(inference_dir, exist_ok=True)
 
-    return evaluation_dir
+    return evaluation_dir, log_dir, inference_dir
 
 def load_config(config_path: str='config.yaml') -> dict:
     """

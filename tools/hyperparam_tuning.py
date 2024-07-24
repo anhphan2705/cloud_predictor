@@ -41,7 +41,7 @@ def objective(trial: Trial, train_dataloader: DataLoader, val_dataloader: DataLo
     }
 
     # Create model
-    tft = model_func(train_dataloader, params, training_config, len(config["data"]["target_vars"]))
+    tft = model_func(train_dataloader, params, training_config)
 
     # Define callbacks and logger
     early_stop_callback = EarlyStopping(monitor="val_loss", min_delta=hyperparameter_tuning_config['early_stop_min_delta'], patience=hyperparameter_tuning_config['early_stop_patience'], verbose=False, mode="min")

@@ -7,26 +7,25 @@ from lightning.pytorch.callbacks.early_stopping import EarlyStopping
 from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint
 from lightning.pytorch.loggers import TensorBoardLogger
 from pytorch_forecasting import Baseline, TemporalFusionTransformer
-from pytorch_forecasting.metrics import MAE, RMSE, QuantileLoss
+from pytorch_forecasting.metrics import QuantileLoss
 from tools.hyperparam_tuning import tune_hyperparameters
-from utils.file_utils import create_training_directory
-from utils.data_visualization import plot_predictions
+from utils.data_visualization import interpret_model_predictions, plot_predictions
 
-def get_predictions(trained_model, baseline_model, val_dataloader):
+def get_predictions(trained_model: TemporalFusionTransformer, baseline_model: Baseline, dataloader: DataLoader) -> dict:
     """
     Get predictions from the trained model and the baseline model.
 
     Parameters:
     trained_model (TemporalFusionTransformer): The trained Temporal Fusion Transformer model.
     baseline_model (Baseline): The baseline model.
-    val_dataloader (DataLoader): DataLoader for the validation data.
+    dataloader (DataLoader): DataLoader for the validation data.
 
     Returns:
     dict: A dictionary containing the actual data, trained model predictions, and baseline model predictions.
     """
-    actuals = torch.cat([y[0] for x, y in iter(val_dataloader)]).cpu().numpy()
-    trained_model_predictions = trained_model.predict(val_dataloader).cpu().numpy()
-    baseline_model_predictions = baseline_model.predict(val_dataloader).cpu().numpy()
+    actuals = torch.cat([y[0] for x, y in iter(dataloader)]).cpu().numpy()
+    trained_model_predictions = trained_model.predict(dataloader).cpu().numpy()
+    baseline_model_predictions = baseline_model.predict(dataloader).cpu().numpy()
     
     return {
         "actuals": actuals,
@@ -47,7 +46,7 @@ def create_trainer(config: dict, logger: TensorBoardLogger, checkpoint_callback:
     progress_bar (TQDMProgressBar): Callback for progress bar.
 
     Returns:
-    Trainer: The PyTorch Lightning trainer.
+    pl.Trainer: The PyTorch Lightning trainer.
     """
     training_device = "gpu" if torch.cuda.is_available() else "cpu"
     print(f"[INFO] Training device: {training_device}") 
@@ -69,7 +68,7 @@ def create_trainer(config: dict, logger: TensorBoardLogger, checkpoint_callback:
         logger=logger,
     )
 
-def initialize_model(train_dataloader: DataLoader, params: dict, train_config: dict):
+def initialize_model(train_dataloader: DataLoader, params: dict, train_config: dict) -> TemporalFusionTransformer:
     """
     Initialize the Temporal Fusion Transformer model from dataset and parameters.
 
@@ -77,7 +76,6 @@ def initialize_model(train_dataloader: DataLoader, params: dict, train_config: d
     train_dataloader (DataLoader): DataLoader for the training data.
     params (dict): Dictionary containing model parameters.
     train_config (dict): Dictionary containing training configuration parameters.
-    target_count (int): The number of target variables.
 
     Returns:
     TemporalFusionTransformer: Initialized Temporal Fusion Transformer model.
@@ -95,7 +93,7 @@ def initialize_model(train_dataloader: DataLoader, params: dict, train_config: d
         reduce_on_plateau_patience=train_config['reduce_on_plateau_patience'],
     )
 
-def training(train_dataloader: DataLoader, val_dataloader: DataLoader, best_params: dict, config: dict) -> pl.Trainer:
+def training(train_dataloader: DataLoader, val_dataloader: DataLoader, best_params: dict, training_dir: str, checkpoint_dir: str, logs_dir: str, config: dict) -> pl.Trainer:
     """
     Perform the final training of the Temporal Fusion Transformer using the best hyperparameters.
 
@@ -103,23 +101,26 @@ def training(train_dataloader: DataLoader, val_dataloader: DataLoader, best_para
     train_dataloader (DataLoader): DataLoader for the training data.
     val_dataloader (DataLoader): DataLoader for the validation data.
     best_params (dict): Dictionary containing the best hyperparameters.
+    training_dir (str): Directory to save the training results.
+    checkpoint_dir (str): Directory to save the checkpoints.
+    logs_dir (str): Directory to save the logs.
     config (dict): Dictionary containing training configuration parameters.
 
     Returns:
-    Trainer: The trained PyTorch Lightning trainer.
-
-    Example Usage:
-    trainer = final_training(train_dataloader, val_dataloader, best_params, config)
+    pl.Trainer: The trained PyTorch Lightning trainer.
     """
-    training_dir, checkpoints_dir, logs_dir = create_training_directory(config['checkpoints']['base_dir'], config['checkpoints']['training_dir'])
     tft = initialize_model(train_dataloader, best_params, config['training'])
 
     checkpoint_callback = ModelCheckpoint(
-        dirpath=checkpoints_dir,
-        filename=config['checkpoints']['checkpoint_filename'],
-        save_top_k=-1,
-        monitor='val_loss',
-        mode='min'
+        dirpath=checkpoint_dir,
+        filename=config['checkpoint']['checkpoint_filename'],
+        save_top_k=config['checkpoint']['save_top_k'],
+        every_n_epochs=config['checkpoint']['every_n_epochs'],
+        monitor=config['checkpoint']['monitor'],
+        mode=config['checkpoint']['mode'],
+        save_last=config['checkpoint']['save_last'],
+        save_weights_only=config['checkpoint']['save_weights_only'],
+        verbose=config['checkpoint']['verbose']
     )
     early_stop_callback = EarlyStopping(monitor="val_loss", min_delta=config['training']['early_stop_min_delta'], patience=config['training']['early_stop_patience'], verbose=False, mode="min")
     lr_logger = LearningRateMonitor()
@@ -134,7 +135,7 @@ def training(train_dataloader: DataLoader, val_dataloader: DataLoader, best_para
     trainer.fit(tft, train_dataloader, val_dataloader)
 
     best_model_path = checkpoint_callback.best_model_path
-    final_best_model_path = os.path.join(training_dir, config['checkpoints']['best_model_filename'])
+    final_best_model_path = os.path.join(training_dir, config['checkpoint']['best_model_filename'])
 
     if best_model_path:
         torch.save(torch.load(best_model_path), final_best_model_path)
@@ -164,36 +165,37 @@ def evaluate_baseline(train_dataloader: DataLoader, val_dataloader: DataLoader, 
 
     return baseline_model
 
-def train_pipeline(train_dataloader: DataLoader, val_dataloader: DataLoader, logs_dir: str, config: dict) -> TemporalFusionTransformer:
+def train_pipeline(train_dataloader: DataLoader, val_dataloader: DataLoader, training_dir: str, checkpoint_dir: str, logs_dir: str, inference_dir: str, config: dict) -> TemporalFusionTransformer:
     """
     Execute the training pipeline, including hyperparameter tuning and final training.
 
     Parameters:
     train_dataloader (DataLoader): DataLoader for the training data.
     val_dataloader (DataLoader): DataLoader for the validation data.
-    logs_dir (str): The directory to save logs.
+    training_dir (str): Directory to save the training results.
+    checkpoint_dir (str): Directory to save the checkpoints.
+    logs_dir (str): Directory to save the logs.
+    inference_dir (str): Directory to save the inference results.
     config (dict): Dictionary containing training and hyperparameter tuning configuration parameters.
 
     Returns:
     TemporalFusionTransformer: The trained Temporal Fusion Transformer model.
-
-    Example Usage:
-    train_pipeline(train_dataloader, val_dataloader, config)
     """
     if config['hyperparameter_tuning']['enable']:
         best_params = tune_hyperparameters(train_dataloader, val_dataloader, logs_dir, config, trainer_func=create_trainer, model_func=initialize_model)
     else:
         best_params = {}
 
-    trainer = training(train_dataloader, val_dataloader, best_params, config)
+    trainer = training(train_dataloader, val_dataloader, best_params, training_dir, checkpoint_dir, logs_dir, config)
 
     best_model_path = trainer.checkpoint_callback.best_model_path
     best_tft = TemporalFusionTransformer.load_from_checkpoint(best_model_path)
 
-    baseline_model = evaluate_baseline(train_dataloader, val_dataloader, config)
+    # # TODO: Fix plot predictions
+    # baseline_model = evaluate_baseline(train_dataloader, val_dataloader, config)
+    # predictions = get_predictions(best_tft, baseline_model, val_dataloader)
+    # plot_predictions(predictions, save_dir=inference_dir, show=False)
 
-    predictions = get_predictions(best_tft, baseline_model, val_dataloader)
-
-    plot_predictions(predictions, save_dir=logs_dir)
+    interpret_model_predictions(best_tft, val_dataloader, save_dir=inference_dir, model_name="tft", show=False)
 
     return best_tft

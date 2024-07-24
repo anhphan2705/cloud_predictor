@@ -27,7 +27,7 @@ training:
   hidden_continuous_size: 32
 
 hyperparameter_tuning:
-  enable: true
+  enable: False
   n_trials: 100
   learning_rate_range: [0.001, 0.1]
   hidden_size_range: [8, 128]
@@ -44,11 +44,24 @@ hyperparameter_tuning:
 
 evaluation:
   eval_data_root: 'data/samples/testing/*.nc'
+  model_path: ''
   eval_save_dir: ''
 
-checkpoints:
-  base_dir: './models'
-  training_dir: 'trainings'
-  evaluation_dir: 'evaluations'
-  checkpoint_filename: 'checkpoint_{epoch:02d}'
+logging:
+  base_dir: './results'
+  training_subdir: 'trainings'
+  evaluation_subdir: 'evaluations'
+  checkpoint_subdir: 'checkpoints'
+  log_subdir: 'logs'
+  inference_subdir: 'inferences'
+
+checkpoint:
+  checkpoint_filename: 'checkpoint_{epoch:03d}_{val_loss:.2f}'
   best_model_filename: 'best_model.ckpt'
+  monitor: 'val_loss'
+  mode: 'min'
+  save_top_k: -1
+  every_n_epochs: 5
+  save_last: True
+  save_weights_only: False
+  verbose: False
