@@ -24,7 +24,7 @@ def get_predictions(trained_model, baseline_model, val_dataloader):
     Returns:
     dict: A dictionary containing the actual data, trained model predictions, and baseline model predictions.
     """
-    actuals = torch.cat([y[0] for x, y in iter(val_dataloader)]).cpu.numpy()
+    actuals = torch.cat([y[0] for x, y in iter(val_dataloader)]).cpu().numpy()
     trained_model_predictions = trained_model.predict(val_dataloader).cpu().numpy()
     baseline_model_predictions = baseline_model.predict(val_dataloader).cpu().numpy()
     
