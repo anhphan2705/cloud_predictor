@@ -40,6 +40,7 @@ def create_training_directory(base_dir: str ='./models', training_subdir: str ='
     checkpoints_dir = os.path.join(training_dir, 'checkpoints')
     logs_dir = os.path.join(training_dir, 'logs')
 
+    os.makedirs(training_dir, exist_ok=True)
     os.makedirs(checkpoints_dir, exist_ok=True)
     os.makedirs(logs_dir, exist_ok=True)
 
