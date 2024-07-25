@@ -61,8 +61,7 @@ def create_cds_time_series_datasets(df: pd.DataFrame, min_encoder_length: int, m
         ],
         'time_varying_unknown_reals': targets,
         'lags': {'tcc':[4383, 84]},  # Yearly lag (1 year = 4383 intervals for 2-hourly data), Weekly lag (7 days = 84 intervals for 2-hourly data)
-        # 'target_normalizer': MultiNormalizer([GroupNormalizer(groups=["latitude", "longitude"])] * len(targets)),
-        'target_normalizer': GroupNormalizer(groups=["latitude", "longitude"], transformation="softplus"),
+        'target_normalizer': GroupNormalizer(groups=["latitude", "longitude"], transformation="softplus") if len(targets) == 1 else MultiNormalizer([GroupNormalizer(groups=["latitude", "longitude"])] * len(targets)),
         'allow_missing_timesteps': False,
         'add_relative_time_idx': True,
         'add_target_scales': True,
