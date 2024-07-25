@@ -120,17 +120,20 @@ def plot_predictions(predictions: dict, save_dir: str, show: bool = True, title:
     baseline_model_predictions = predictions["baseline_model_predictions"]
 
     # Ensure the predictions and actuals are numpy arrays
-    if not isinstance(actuals, np.ndarray):
-        actuals = np.array(actuals)
-    if not isinstance(trained_model_predictions, np.ndarray):
-        trained_model_predictions = np.array(trained_model_predictions)
-    if not isinstance(baseline_model_predictions, np.ndarray):
-        baseline_model_predictions = np.array(baseline_model_predictions)
+    actuals = np.array(actuals) if not isinstance(actuals, np.ndarray) else actuals
+    trained_model_predictions = np.array(trained_model_predictions) if not isinstance(trained_model_predictions, np.ndarray) else trained_model_predictions
+    baseline_model_predictions = np.array(baseline_model_predictions) if not isinstance(baseline_model_predictions, np.ndarray) else baseline_model_predictions
 
     # Check shapes of the arrays
     print(f"Actuals shape: {actuals.shape}")
     print(f"Trained model predictions shape: {trained_model_predictions.shape}")
     print(f"Baseline model predictions shape: {baseline_model_predictions.shape}")
+
+    # Ensure the length of the arrays are the same
+    min_length = min(len(actuals), len(trained_model_predictions), len(baseline_model_predictions))
+    actuals = actuals[:min_length]
+    trained_model_predictions = trained_model_predictions[:min_length]
+    baseline_model_predictions = baseline_model_predictions[:min_length]
 
     plt.figure(figsize=(25, 7))
     plt.plot(actuals, label='Actual Data', color='blue')
@@ -174,7 +177,7 @@ def interpret_model_predictions(model: TemporalFusionTransformer, dataloader: Da
     predictions_vs_actuals = model.calculate_prediction_actual_by_variable(val_prediction_results.x, val_prediction_results.output)
 
     # Get feature names
-    features = list(set(predictions_vs_actuals['support'].keys()))
+    features = list(set(predictions_vs_actuals['support'].keys()) - set(['tcc_lagged_by_4383', 'tcc_lagged_by_84']))
 
     # Plot and save interpretation for each feature
     for feature in features:

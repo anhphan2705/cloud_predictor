@@ -110,7 +110,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Weather Forecasting with Temporal Fusion Transformer')
     parser.add_argument('--mode', type=str, choices=['train', 'eval'], required=True, help='Mode to run: train or eval')
     parser.add_argument('--config', type=str, default='configs/cds.yaml', help='Path to configuration file')
+    parser.add_argument('--cuda_memory_fraction', type=float, default=0.5, help='Fraction of CUDA memory to use (e.g., 0.5 for 50%)')
     args = parser.parse_args()
+
+    if args.cuda_memory_fraction:
+        torch.cuda.set_per_process_memory_fraction(args.cuda_memory_fraction, 0)
 
     config = load_config(args.config)
     main(config)
