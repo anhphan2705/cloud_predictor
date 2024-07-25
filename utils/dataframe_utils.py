@@ -102,6 +102,44 @@ def split_year_date_hour(df: pd.DataFrame, time_column: str, new_hour_col_name: 
     print(f"[INFO] Extracted 'date', 'hour', and 'year' from '{time_column}'.")
     return df
 
+def add_cyclic_features(df: pd.DataFrame, time_column: str = 'time', hour_in_day: int = 24, day_in_week: int = 7, month_in_year: int = 12) -> pd.DataFrame:
+    """
+    Add cyclic features for hour, day of week, and month to the DataFrame.
+
+    Parameters:
+    df (pd.DataFrame): DataFrame with a datetime column.
+    time_column (str): Name of the datetime column.
+    hour_in_day (int): Number of hours in a day. Default is 24.
+    day_in_week (int): Number of days in a week. Default is 7.
+    month_in_year (int): Number of months in a year. Default is 12.
+
+    Returns:
+    pd.DataFrame: DataFrame with added cyclic features of hour, day, month, and year.
+    """
+    # Convert the time column to datetime if it's not already
+    df[time_column] = pd.to_datetime(df[time_column])
+    
+    # Extract time-based features
+    df['hour'] = df[time_column].dt.hour
+    df['day_of_week'] = df[time_column].dt.dayofweek  # 0 = Monday, 6 = Sunday
+    df['month'] = df[time_column].dt.month
+    df['year'] = df[time_column].dt.year
+
+    # Add cyclic features
+    df['sin_hour'] = np.sin(2 * np.pi * df['hour'] / hour_in_day)
+    df['cos_hour'] = np.cos(2 * np.pi * df['hour'] / hour_in_day)
+    df['sin_day_of_week'] = np.sin(2 * np.pi * df['day_of_week'] / day_in_week)
+    df['cos_day_of_week'] = np.cos(2 * np.pi * df['day_of_week'] / day_in_week)
+    df['sin_month'] = np.sin(2 * np.pi * df['month'] / month_in_year)
+    df['cos_month'] = np.cos(2 * np.pi * df['month'] / month_in_year)
+    
+    # Add cyclic encoding for years if you expect cyclic yearly patterns
+    year_range = df['year'].max() - df['year'].min() + 1
+    df['sin_year'] = np.sin(2 * np.pi * (df['year'] - df['year'].min()) / year_range)
+    df['cos_year'] = np.cos(2 * np.pi * (df['year'] - df['year'].min()) / year_range)
+    
+    return df
+
 def factorize_column(df: pd.DataFrame, column: str, new_column: str) -> pd.DataFrame:
     """
     Factorizes a specified column and creates a new column with incrementing count.
