@@ -48,7 +48,7 @@ def create_cds_time_series_datasets(df: pd.DataFrame, min_encoder_length: int, m
 
     common_params = {
         'time_idx': "time_idx",
-        'target': targets[0],
+        'target': targets[0] if len(targets) == 1 else targets,
         'group_ids': ["latitude", "longitude"],
         'min_encoder_length': min_encoder_length,
         'max_encoder_length': max_encoder_length,
