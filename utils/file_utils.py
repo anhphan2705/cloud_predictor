@@ -136,7 +136,7 @@ def load_model(model_path: str, dataset: TimeSeriesDataSet = None) -> TemporalFu
     if model_path.endswith('.ckpt'):
         return TemporalFusionTransformer.load_from_checkpoint(model_path)
     elif model_path.endswith('.pt') or model_path.endswith('.pth'):
-        if dataset is None:
+        if not dataset:
             raise ValueError("[DEBUG] Dataset must be provided when loading from .pt or .pth file.")
         model = TemporalFusionTransformer.from_dataset(dataset)
         model.load_state_dict(torch.load(model_path))

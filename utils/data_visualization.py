@@ -109,6 +109,7 @@ def plot_predictions(prediction_results: dict, model: TemporalFusionTransformer,
 
     Parameters:
     prediction_results (dict): A dictionary containing the actual data, trained model predictions, and baseline model predictions.
+    model (TemporalFusionTransformer): The trained Temporal Fusion Transformer model.
     save_dir (str): Directory to save the plot.
     show (bool): Whether to show the plot. Default is True.
     title (str): Title of the plot.
