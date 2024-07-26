@@ -24,18 +24,15 @@ def dataloader(dataset: TimeSeriesDataSet, train: bool, batch_size: int, num_wor
     print(f"[INFO] Creating DataLoader for {'training' if train else 'validation'}...")
     return dataset.to_dataloader(train=train, batch_size=batch_size, num_workers=num_workers, persistent_workers=True)
 
-def data_pipeline(data_root: str, min_encoder_length: int, max_encoder_length: int, min_prediction_length: int, max_prediction_length: int, data_source: str = 'cds', target_vars: list = [], time_column: str = 'time', batch_size: int = 16, num_workers: int = 4, save_dir: str = '', mode: str = 'train') -> tuple:
+def data_pipeline(data_root: str, time_series_config: dict, data_source: str = 'cds', time_column: str = 'time', batch_size: int = 16, num_workers: int = 4, save_dir: str = '', mode: str = 'train') -> tuple:
     """
     Execute the data pipeline by loading, preprocessing (save preprocessed data if requested), creating datasets, and DataLoaders.
 
     Parameters:
     data_root (str): The directory pattern to search for files (e.g., 'data/*.nc').
     data_source (str): The source of the data. Default is `cds`.
-    target_vars (list): The list of target variables to include in the DataFrame. Default is empty list.
+    time_series_config (dict): Dictionary containing time series configuration parameters.
     time_column (str): The name of the time column. Default is `time`.
-    max_encoder_length (int): The maximum length of the encoder. Default is `365`.
-    max_prediction_length (int): The maximum length of the prediction. Default is `365`.
-    min_prediction_length (int): The minimum length of the prediction. Default is `1`.
     batch_size (int): The batch size for DataLoader. Default is `16`.
     num_workers (int): The number of workers for DataLoader. Default is `4`.
     save_dir (str): The directory to save the preprocessed data as `.csv`. Default is empty string.
@@ -56,6 +53,8 @@ def data_pipeline(data_root: str, min_encoder_length: int, max_encoder_length: i
         save_dir='preprocessed_data.csv'
     )
     """
+    target_vars = time_series_config['target_vars']
+
     # Load the data
     ds = get_combined_dataset(data_root)
     df = convert_to_dataframe(ds, variables=target_vars)
@@ -68,7 +67,7 @@ def data_pipeline(data_root: str, min_encoder_length: int, max_encoder_length: i
         if save_dir:
             save_to_csv(df, save_dir)
 
-        tds_dataset = create_cds_time_series_datasets(df, min_encoder_length, max_encoder_length, min_prediction_length, max_prediction_length, target_vars, mode=mode)
+        tds_dataset = create_cds_time_series_datasets(df, time_series_config=time_series_config, mode=mode)
         
         if mode == 'train':
             training_dataset, validation_dataset = tds_dataset

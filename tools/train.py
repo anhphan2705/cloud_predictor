@@ -87,7 +87,7 @@ def initialize_model(train_dataloader: DataLoader, params: dict, train_config: d
         attention_head_size=params.get("attention_head_size", train_config['attention_head_size']),
         dropout=params.get("dropout", train_config['dropout']),
         hidden_continuous_size=params.get("hidden_continuous_size", train_config['hidden_continuous_size']),
-        output_size=7 if target_count == 1 else [7] * target_count,
+        output_size=train_config['output_size'] if target_count == 1 else [train_config['output_size']] * target_count,
         loss=QuantileLoss(),
         log_interval=train_config['log_every_n_steps'],
         reduce_on_plateau_patience=train_config['reduce_on_plateau_patience'],

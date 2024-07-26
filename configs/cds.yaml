@@ -1,15 +1,25 @@
 data:
   data_root: 'data/samples/training/*.nc'
   data_source: 'cds'
-  target_vars: ['tcc']
   time_column: 'time'
   save_dir: ''
 
-training:
+time_series:
+  target_vars: ['tcc']
   max_encoder_length: 365
   min_encoder_length: 182
   max_prediction_length: 365
   min_prediction_length: 12
+  groups: ["latitude", "longitude"]
+  static_categoricals: ["latitude", "longitude"]
+  time_varying_known_reals: ["time_idx", "sin_hour", "cos_hour", "sin_day_of_week", "cos_day_of_week", "sin_month", "cos_month", "sin_year", "cos_year"]
+  lags: {'tcc':[4383, 84]} # Yearly lag (1 year = 4383 intervals for 2-hourly data), Weekly lag (7 days = 84 intervals for 2-hourly data)
+  allow_missing_timesteps: False
+  add_relative_time_idx: True
+  add_target_scales: True
+  add_encoder_length: True
+
+training:
   batch_size: 64
   num_workers: 8
   max_epochs: 100
@@ -45,7 +55,6 @@ hyperparameter_tuning:
 evaluation:
   data_root: 'data/samples/testing/*.nc'
   model_path: 'results/trainings/20240725_100458_save/best_model.ckpt'
-  eval_save_dir: ''
 
 logging:
   base_dir: './results'

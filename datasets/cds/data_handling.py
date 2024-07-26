@@ -27,16 +27,13 @@ def preprocess_cds_df(cds_df: pd.DataFrame, time_column: str = 'time') -> pd.Dat
 
     return cds_df
 
-def create_cds_time_series_datasets(df: pd.DataFrame, min_encoder_length: int, max_encoder_length: int, min_prediction_length: int, max_prediction_length: int, targets: list, mode: str = 'train'):
+def create_cds_time_series_datasets(df: pd.DataFrame, time_series_config: dict,  mode: str = 'train'):
     """
     Create TimeSeriesDataSet for both training and validation or evaluation.
 
     Parameters:
     df (pd.DataFrame): The input DataFrame.
-    max_encoder_length (int): The maximum length of the encoder.
-    max_prediction_length (int): The maximum length of the prediction.
-    targets (list): A list of target variables to predict.
-    min_prediction_length (int): The minimum length of the prediction.
+    time_series_config (dict): Dictionary containing time series configuration parameters.
     mode (str): Mode of operation - 'train' or 'eval'.
 
     Returns:
@@ -48,26 +45,37 @@ def create_cds_time_series_datasets(df: pd.DataFrame, min_encoder_length: int, m
     """
     print(f'[INFO] Creating TimeSeriesDataSet for {mode} mode...')
 
+    max_encoder_length = time_series_config['max_encoder_length']
+    max_prediction_length = time_series_config['max_prediction_length']
+    min_prediction_length = time_series_config['min_prediction_length']
+    min_encoder_length = time_series_config['min_encoder_length']
+    targets = time_series_config['target_vars']
+    groups = time_series_config['groups']
+    static_categoricals = time_series_config['static_categoricals']
+    time_varying_known_reals = time_series_config['time_varying_known_reals']
+    lags = time_series_config['lags']
+    allow_missing_timesteps = time_series_config['allow_missing_timesteps']
+    add_relative_time_idx = time_series_config['add_relative_time_idx']
+    add_target_scales = time_series_config['add_target_scales']
+    add_encoder_length = time_series_config['add_encoder_length']
+
     common_params = {
         'time_idx': "time_idx",
         'target': targets[0] if len(targets) == 1 else targets,
-        'group_ids': ["latitude", "longitude"],
+        'group_ids': groups,
         'min_encoder_length': min_encoder_length,
         'max_encoder_length': max_encoder_length,
         'min_prediction_length': min_prediction_length,
         'max_prediction_length': max_prediction_length,
-        'static_categoricals': ["latitude", "longitude"],
-        'time_varying_known_reals': [
-            "time_idx", "sin_hour", "cos_hour", "sin_day_of_week", "cos_day_of_week", "sin_month", "cos_month",
-            "sin_year", "cos_year"
-        ],
+        'static_categoricals': static_categoricals,
+        'time_varying_known_reals': time_varying_known_reals,
         'time_varying_unknown_reals': targets,
-        'lags': {'tcc':[4383, 84]},  # Yearly lag (1 year = 4383 intervals for 2-hourly data), Weekly lag (7 days = 84 intervals for 2-hourly data)
-        'target_normalizer': GroupNormalizer(groups=["latitude", "longitude"], transformation="softplus") if len(targets) == 1 else MultiNormalizer([GroupNormalizer(groups=["latitude", "longitude"])] * len(targets)),
-        'allow_missing_timesteps': False,
-        'add_relative_time_idx': True,
-        'add_target_scales': True,
-        'add_encoder_length': True,
+        'lags': lags,
+        'target_normalizer': GroupNormalizer(groups=groups, transformation="softplus") if len(targets) == 1 else MultiNormalizer([GroupNormalizer(groups=groups)] * len(targets)),
+        'allow_missing_timesteps': allow_missing_timesteps,
+        'add_relative_time_idx': add_relative_time_idx,
+        'add_target_scales': add_target_scales,
+        'add_encoder_length': add_encoder_length,
     }
 
     print(f"[DEBUG] TSD Params:\n{common_params}")
@@ -78,22 +86,23 @@ def create_cds_time_series_datasets(df: pd.DataFrame, min_encoder_length: int, m
 
         training_df = df[df["time_idx"] <= training_cutoff]
         print(f'[DEBUG] training_df size: {len(training_df)}')
-
+        
+        print("[INFO] Creating training and validation datasets. You should go get a coffee...")
         training_dataset = TimeSeriesDataSet(training_df, **common_params)
-        print(f'[DEBUG] Training dataset created.')
+        print(f'[INFO] Training dataset created.')
         validation_dataset = TimeSeriesDataSet.from_dataset(
             training_dataset,
             df,
             predict=True,
             stop_randomization=True
         )
-        print(f'[DEBUG] Validation dataset created.')
+        print(f'[INFO] Validation dataset created.')
 
         return training_dataset, validation_dataset
 
     elif mode == 'eval':
         eval_dataset = TimeSeriesDataSet(df, **common_params)
-        print(f'[DEBUG] Evaluation dataset created.')
+        print(f'[INFO] Evaluation dataset created.')
 
         return eval_dataset
 

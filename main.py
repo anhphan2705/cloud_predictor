@@ -34,6 +34,7 @@ def main(config: dict) -> None:
     config (dict): Configuration dictionary loaded from a YAML file.
     """
     data_config = config['data']
+    time_series_config = config['time_series']
     training_config = config['training']
     evaluation_config = config['evaluation']
     log_config = config['logging']
@@ -54,12 +55,8 @@ def main(config: dict) -> None:
             train_dataloader, val_dataloader = data_pipeline(
                 data_root=data_config['data_root'],
                 data_source=data_config['data_source'],
-                target_vars=data_config['target_vars'],
+                time_series_config=time_series_config,
                 time_column=data_config['time_column'],
-                min_encoder_length=training_config['min_encoder_length'],
-                max_encoder_length=training_config['max_encoder_length'],
-                max_prediction_length=training_config['max_prediction_length'],
-                min_prediction_length=training_config['min_prediction_length'],
                 batch_size=training_config['batch_size'],
                 num_workers=training_config['num_workers'],
                 save_dir=data_config['save_dir'],
@@ -90,12 +87,8 @@ def main(config: dict) -> None:
             _, eval_dataloader = data_pipeline(
                 data_root=evaluation_config['data_root'],
                 data_source=data_config['data_source'],
-                target_vars=data_config['target_vars'],
+                time_series_config=time_series_config,
                 time_column=data_config['time_column'],
-                min_encoder_length=training_config['min_encoder_length'],
-                max_encoder_length=training_config['max_encoder_length'],
-                max_prediction_length=training_config['max_prediction_length'],
-                min_prediction_length=training_config['min_prediction_length'],
                 batch_size=training_config['batch_size'],
                 num_workers=training_config['num_workers'],
                 save_dir=data_config['save_dir'],
