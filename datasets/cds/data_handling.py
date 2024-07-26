@@ -1,7 +1,7 @@
 import pandas as pd
 from pytorch_forecasting.data import GroupNormalizer, MultiNormalizer
 from pytorch_forecasting import TimeSeriesDataSet
-from utils.dataframe_utils import convert_to_datetime, factorize_column, drop_columns, check_and_handle_missing_values, convert_columns_to_string, add_cyclic_features
+from utils.dataframe_utils import convert_to_datetime, factorize_column, drop_columns, check_and_handle_missing_values, consistency_check, convert_columns_to_string, add_cyclic_features
 
 def preprocess_cds_df(cds_df: pd.DataFrame, time_column: str = 'time') -> pd.DataFrame: 
     """
@@ -21,6 +21,8 @@ def preprocess_cds_df(cds_df: pd.DataFrame, time_column: str = 'time') -> pd.Dat
     cds_df = factorize_column(cds_df, column=time_column, new_column='time_idx')
     cds_df = drop_columns(cds_df, [time_column])
     cds_df = convert_columns_to_string(cds_df, ["latitude", "longitude"])
+    consistency_check(cds_df)
+
     print(f"[INFO] Preprocess completed:\n{cds_df}")
 
     return cds_df

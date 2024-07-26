@@ -4,7 +4,7 @@ import sys
 import torch
 from tools.data_process import data_pipeline
 from tools.train import train_pipeline
-from tools.eval import evaluate_model
+from tools.eval import evaluate_pipeline
 from utils.file_utils import create_training_directory, create_evaluation_directory, load_config, dump_config
 
 class Logger(object):
@@ -62,7 +62,8 @@ def main(config: dict) -> None:
                 min_prediction_length=training_config['min_prediction_length'],
                 batch_size=training_config['batch_size'],
                 num_workers=training_config['num_workers'],
-                save_dir=data_config['save_dir']
+                save_dir=data_config['save_dir'],
+                mode='train'
             )
 
             # Train the model
@@ -85,9 +86,9 @@ def main(config: dict) -> None:
         sys.stderr = sys.stdout
 
         try:
-            # Load the evaluation data
-            eval_dataloader = data_pipeline(
-                data_root=evaluation_config['eval_data_root'],
+            # Load the inference data
+            _, eval_dataloader = data_pipeline(
+                data_root=evaluation_config['data_root'],
                 data_source=data_config['data_source'],
                 target_vars=data_config['target_vars'],
                 time_column=data_config['time_column'],
@@ -97,14 +98,14 @@ def main(config: dict) -> None:
                 min_prediction_length=training_config['min_prediction_length'],
                 batch_size=training_config['batch_size'],
                 num_workers=training_config['num_workers'],
-                save_dir=evaluation_config['eval_save_dir']
-            )[0]  # Only need the DataLoader for evaluation
-
-            # Load the trained model
-            model = torch.load(evaluation_config['model_path'])
+                save_dir=data_config['save_dir'],
+                mode='eval'
+            )
+            
+            model_path = evaluation_config['model_path']
 
             # Evaluate the model
-            evaluate_model(model, eval_dataloader, evaluation_dir)
+            evaluate_pipeline(model_path, eval_dataloader, inference_dir)
 
         finally:
             # Restore the original stdout and stderr
@@ -115,7 +116,7 @@ def main(config: dict) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Weather Forecasting with Temporal Fusion Transformer')
     parser.add_argument('--mode', type=str, choices=['train', 'eval'], required=True, help='Mode to run: train or eval')
-    parser.add_argument('--config', type=str, default='configs/cds.yaml', help='Path to configuration file')
+    parser.add_argument('--config', type=str, required=True, help='Path to configuration file (REQUIRED)')
     parser.add_argument('--cuda_memory_fraction', type=float, default=0.5, help='Fraction of CUDA memory to use (e.g., 0.5 for 50%)')
     args = parser.parse_args()
 

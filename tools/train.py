@@ -68,7 +68,7 @@ def create_trainer(config: dict, logger: TensorBoardLogger, checkpoint_callback:
         logger=logger,
     )
 
-def initialize_model(train_dataloader: DataLoader, params: dict, train_config: dict) -> TemporalFusionTransformer:
+def initialize_model(train_dataloader: DataLoader, params: dict, train_config: dict, target_count: int = 1) -> TemporalFusionTransformer:
     """
     Initialize the Temporal Fusion Transformer model from dataset and parameters.
 
@@ -87,7 +87,7 @@ def initialize_model(train_dataloader: DataLoader, params: dict, train_config: d
         attention_head_size=params.get("attention_head_size", train_config['attention_head_size']),
         dropout=params.get("dropout", train_config['dropout']),
         hidden_continuous_size=params.get("hidden_continuous_size", train_config['hidden_continuous_size']),
-        output_size=7,
+        output_size=7 if target_count == 1 else [7] * target_count,
         loss=QuantileLoss(),
         log_interval=train_config['log_every_n_steps'],
         reduce_on_plateau_patience=train_config['reduce_on_plateau_patience'],
@@ -109,7 +109,7 @@ def training(train_dataloader: DataLoader, val_dataloader: DataLoader, best_para
     Returns:
     pl.Trainer: The trained PyTorch Lightning trainer.
     """
-    tft = initialize_model(train_dataloader, best_params, config['training'])
+    tft = initialize_model(train_dataloader, best_params, config['training'], target_count=len(config['data']['target_vars']))
 
     checkpoint_callback = ModelCheckpoint(
         dirpath=checkpoint_dir,
@@ -190,11 +190,6 @@ def train_pipeline(train_dataloader: DataLoader, val_dataloader: DataLoader, tra
 
     best_model_path = trainer.checkpoint_callback.best_model_path
     best_tft = TemporalFusionTransformer.load_from_checkpoint(best_model_path)
-
-    # # TODO: Fix plot predictions
-    # baseline_model = evaluate_baseline(train_dataloader, val_dataloader, config)
-    # predictions = get_predictions(best_tft, baseline_model, val_dataloader)
-    # plot_predictions(predictions, save_dir=inference_dir, show=False)
 
     interpret_model_predictions(best_tft, val_dataloader, save_dir=inference_dir, model_name="tft", show=False)
 

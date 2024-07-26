@@ -24,7 +24,7 @@ def dataloader(dataset: TimeSeriesDataSet, train: bool, batch_size: int, num_wor
     print(f"[INFO] Creating DataLoader for {'training' if train else 'validation'}...")
     return dataset.to_dataloader(train=train, batch_size=batch_size, num_workers=num_workers, persistent_workers=True)
 
-def data_pipeline(data_root: str, min_encoder_length: int, max_encoder_length: int, min_prediction_length: int, max_prediction_length: int, data_source: str = 'cds', target_vars: list = [], time_column: str = 'time', batch_size: int = 16, num_workers: int = 4, save_dir: str = '') -> tuple:
+def data_pipeline(data_root: str, min_encoder_length: int, max_encoder_length: int, min_prediction_length: int, max_prediction_length: int, data_source: str = 'cds', target_vars: list = [], time_column: str = 'time', batch_size: int = 16, num_workers: int = 4, save_dir: str = '', mode: str = 'train') -> tuple:
     """
     Execute the data pipeline by loading, preprocessing (save preprocessed data if requested), creating datasets, and DataLoaders.
 
@@ -41,7 +41,7 @@ def data_pipeline(data_root: str, min_encoder_length: int, max_encoder_length: i
     save_dir (str): The directory to save the preprocessed data as `.csv`. Default is empty string.
 
     Returns:
-    tuple: A tuple containing the training DataLoader and validation DataLoader.
+    tuple: A tuple containing (training DataLoader, validation DataLoader) or (None, evaluation Dataloader).
 
     Usage:
     train_dataloader, val_dataloader = data_pipeline(
@@ -68,12 +68,19 @@ def data_pipeline(data_root: str, min_encoder_length: int, max_encoder_length: i
         if save_dir:
             save_to_csv(df, save_dir)
 
-        training_dataset, validation_dataset = create_cds_time_series_datasets(df, min_encoder_length, max_encoder_length, min_prediction_length, max_prediction_length, target_vars)
+        tds_dataset = create_cds_time_series_datasets(df, min_encoder_length, max_encoder_length, min_prediction_length, max_prediction_length, target_vars, mode=mode)
+        
+        if mode == 'train':
+            training_dataset, validation_dataset = tds_dataset
+            # Create DataLoaders
+            train_dataloader = dataloader(training_dataset, train=True, batch_size=batch_size, num_workers=num_workers)
+            val_dataloader = dataloader(validation_dataset, train=False, batch_size=batch_size, num_workers=num_workers)
+            return train_dataloader, val_dataloader
+        elif mode == 'eval':
+            evaluation_dataset = tds_dataset
+            eval_dataloader = dataloader(evaluation_dataset, train=False, batch_size=batch_size, num_workers=num_workers)
+            return None, eval_dataloader
+        else:
+            raise ValueError(f"Unsupported mode: {mode}. Choose either 'train' or 'eval'.")
     else:
         raise ValueError(f"[INFO] Data source {data_source} is not supported.")
-    
-    # Create DataLoaders
-    train_dataloader = dataloader(training_dataset, train=True, batch_size=batch_size, num_workers=num_workers)
-    val_dataloader = dataloader(validation_dataset, train=False, batch_size=batch_size, num_workers=num_workers)
-
-    return train_dataloader, val_dataloader

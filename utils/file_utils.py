@@ -1,7 +1,10 @@
 import glob
 import os
 import yaml
+import torch
 from datetime import datetime
+from pytorch_forecasting import TemporalFusionTransformer
+from pytorch_forecasting.data import TimeSeriesDataSet
 
 def get_file_paths(dir: str) -> list:
     """
@@ -117,3 +120,26 @@ def dump_config(config: dict, path: str) -> None:
     """
     with open(path, 'w') as file:
         yaml.dump(config, file)
+
+def load_model(model_path: str, dataset: TimeSeriesDataSet = None) -> TemporalFusionTransformer:
+    """
+    Load the Temporal Fusion Transformer model from a checkpoint, .pt or .pth file.
+
+    Parameters:
+    model_path (str): Path to the model file.
+    dataset (TimeSeriesDataSet): Optional dataset for creating the model from scratch if loading .pt or .pth file.
+
+    Returns:
+    TemporalFusionTransformer: The loaded Temporal Fusion Transformer model.
+    """
+    print(f"[INFO] Loading model from {model_path}")
+    if model_path.endswith('.ckpt'):
+        return TemporalFusionTransformer.load_from_checkpoint(model_path)
+    elif model_path.endswith('.pt') or model_path.endswith('.pth'):
+        if dataset is None:
+            raise ValueError("[DEBUG] Dataset must be provided when loading from .pt or .pth file.")
+        model = TemporalFusionTransformer.from_dataset(dataset)
+        model.load_state_dict(torch.load(model_path))
+        return model
+    else:
+        raise ValueError("{DEBUG] Unsupported file format. Supported formats are: .ckpt, .pt, .pth")

@@ -103,52 +103,34 @@ def convert_to_time_idx(years: int = 0, days: int = 0, hours: int = 0, step: int
     total_hours = total_days * 24 + hours
     return total_hours // step
 
-def plot_predictions(predictions: dict, save_dir: str, show: bool = True, title: str = 'Model Predictions vs Actual Data') -> None:
+def plot_predictions(prediction_results: dict, model: TemporalFusionTransformer, save_dir: str, show: bool = True, title: str = 'Model Predictions vs Actual Data') -> None:
     """
     Plot the actual data, trained model predictions, and baseline model predictions.
 
     Parameters:
-    predictions (dict): A dictionary containing the actual data, trained model predictions, and baseline model predictions.
+    prediction_results (dict): A dictionary containing the actual data, trained model predictions, and baseline model predictions.
     save_dir (str): Directory to save the plot.
     show (bool): Whether to show the plot. Default is True.
     title (str): Title of the plot.
     """
     print("[INFO] Plotting result...")
     
-    actuals = predictions["actuals"]
-    trained_model_predictions = predictions["trained_model_predictions"]
-    baseline_model_predictions = predictions["baseline_model_predictions"]
+    for idx in range(len(prediction_results)):
+        fig, ax = plt.subplots(figsize=(23, 5))
+        model.plot_prediction(
+            prediction_results.x,
+            prediction_results.output,
+            idx=idx,
+            show_future_observed=False,
+            add_loss_to_title=False,
+            ax=ax,
+        )
 
-    # Ensure the predictions and actuals are numpy arrays
-    actuals = np.array(actuals) if not isinstance(actuals, np.ndarray) else actuals
-    trained_model_predictions = np.array(trained_model_predictions) if not isinstance(trained_model_predictions, np.ndarray) else trained_model_predictions
-    baseline_model_predictions = np.array(baseline_model_predictions) if not isinstance(baseline_model_predictions, np.ndarray) else baseline_model_predictions
-
-    # Check shapes of the arrays
-    print(f"Actuals shape: {actuals.shape}")
-    print(f"Trained model predictions shape: {trained_model_predictions.shape}")
-    print(f"Baseline model predictions shape: {baseline_model_predictions.shape}")
-
-    # Ensure the length of the arrays are the same
-    min_length = min(len(actuals), len(trained_model_predictions), len(baseline_model_predictions))
-    actuals = actuals[:min_length]
-    trained_model_predictions = trained_model_predictions[:min_length]
-    baseline_model_predictions = baseline_model_predictions[:min_length]
-
-    plt.figure(figsize=(25, 7))
-    plt.plot(actuals, label='Actual Data', color='blue')
-    plt.plot(trained_model_predictions, label='Trained Model Predictions', color='green')
-    plt.plot(baseline_model_predictions, label='Baseline Model Predictions', color='red')
-    
-    plt.title(title)
-    plt.xlabel('Time')
-    plt.ylabel('Value')
-    plt.legend()
-    plt.grid(True)
-    plt.savefig(os.path.join(save_dir, 'model_vs_baseline_vs_actuals.png'))
-    if show:
+        plt.title(title)
+        plt.savefig(os.path.join(save_dir, f'model_predictions_{idx}.png'))
         plt.show()
-    print(f"[INFO] Plot saved to {save_dir}")
+
+    print(f"[INFO] Plots saved to {save_dir}")
 
 def interpret_model_predictions(model: TemporalFusionTransformer, dataloader: DataLoader, save_dir: str, model_name: str, show: bool = False) -> None:
     """

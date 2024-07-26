@@ -82,9 +82,7 @@ def get_combined_dataset(data_root: str, dim: str = 'time', save_dir: str = '') 
     """
     data_paths = get_file_paths(data_root)
     datasets = load_datasets(data_paths)
-    
-    if len(datasets) > 1:
-        datasets = concatenate_datasets(datasets, dim)
+    datasets = concatenate_datasets(datasets, dim)
     
     if save_dir:
         save_dataset(datasets, save_dir)

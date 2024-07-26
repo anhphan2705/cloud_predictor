@@ -43,8 +43,8 @@ hyperparameter_tuning:
   max_epochs: 50
 
 evaluation:
-  eval_data_root: 'data/samples/testing/*.nc'
-  model_path: ''
+  data_root: 'data/samples/testing/*.nc'
+  model_path: 'results/trainings/20240725_100458_save/best_model.ckpt'
   eval_save_dir: ''
 
 logging:

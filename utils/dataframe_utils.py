@@ -19,6 +19,14 @@ def convert_to_dataframe(datasets: xr.Dataset, variables: list = None) -> pd.Dat
     """
     if not variables:
         variables = list(datasets.data_vars)
+
+    # Debug print statements to help understand the issue
+    print(f"[DEBUG] Dataset variables: {list(datasets.data_vars)}")
+    print(f"[DEBUG] Requested variables: {variables}")
+
+    # Check if variables are in the dataset
+    if not all(var in datasets for var in variables):
+        raise ValueError("[ERROR] One or more variables are not in the dataset")
     
     df = datasets[variables].to_dataframe().reset_index()
     print(f"[INFO] Converted dataset to DataFrame. Showing in format [column title] [row counts]:\n{df.count()}")
@@ -232,9 +240,10 @@ def check_and_handle_missing_values(df: pd.DataFrame, drop: bool = False) -> pd.
     
     return df
 
-def consistency_check(df: pd.DataFrame):
+def consistency_check(df: pd.DataFrame, time_column: str = 'time_idx') -> None:
     """
-    Checks for any missing combinations of 'date_id' and 'hour_id' in the DataFrame.
+    Checks for any missing value in time column of the DataFrame.
+    Time column must be in increasing index order.
 
     Parameters:
     df (pd.DataFrame): The DataFrame to check for consistency.
@@ -242,15 +251,16 @@ def consistency_check(df: pd.DataFrame):
     Usage:
     consistency_check(df)
     """
-    expected_hour_ids = set(np.arange(0, 24, 2))
-    unique_dates = df['date_id'].unique()
-    grouped_df = df.groupby('date_id')['hour_id'].apply(set)
-    
-    for date in unique_dates:
-        actual_hour_ids = grouped_df.get(date, set())
-        missing_hour_ids = expected_hour_ids - actual_hour_ids
-        if missing_hour_ids:
-            print(f"Missing hour_id(s) for date_id {date}: {missing_hour_ids}")
+    # Check for missing time indices
+    expected_time_idx = set(range(df[time_column].min(), df[time_column].max() + 1))
+    actual_time_idx = set(df[time_column].unique())
+    missing_time_idx = expected_time_idx - actual_time_idx
+
+    if missing_time_idx:
+        print(f"[DEBUG] Missing time indices: {sorted(missing_time_idx)}")
+        raise ValueError(f"Missing time indices detected: {sorted(missing_time_idx)}")
+    else:
+        print("[DEBUG] No missing time indices detected.")
 
 def merge_dataframes(df1: pd.DataFrame, df2: pd.DataFrame, on: str, how: str = 'inner') -> pd.DataFrame:
     """
