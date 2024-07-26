@@ -5,7 +5,7 @@ import torch
 from tools.data_process import data_pipeline
 from tools.train import train_pipeline
 from tools.eval import evaluate_model
-from utils.file_utils import create_training_directory, create_evaluation_directory, load_config
+from utils.file_utils import create_training_directory, create_evaluation_directory, load_config, dump_config
 
 class Logger(object):
     def __init__(self, filename="log.txt"):
@@ -42,6 +42,9 @@ def main(config: dict) -> None:
     if args.mode == 'train':
         training_dir, checkpoint_dir, logs_dir, inference_dir = create_training_directory(log_config)
 
+        # Dump the configuration file
+        dump_config(config, os.path.join(logs_dir, "config.yaml"))
+
         # Redirect stdout and stderr to log file
         sys.stdout = Logger(os.path.join(logs_dir, "training_log.txt"))
         sys.stderr = sys.stdout
@@ -73,6 +76,9 @@ def main(config: dict) -> None:
 
     elif args.mode == 'eval':
         evaluation_dir, logs_dir, inference_dir = create_evaluation_directory(log_config)
+
+        # Dump the configuration file
+        dump_config(config, os.path.join(logs_dir, "config.yaml"))
 
         # Redirect stdout and stderr to log file
         sys.stdout = Logger(os.path.join(logs_dir, "evaluation_log.txt"))

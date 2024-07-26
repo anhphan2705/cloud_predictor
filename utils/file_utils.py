@@ -103,3 +103,17 @@ def load_config(config_path: str='config.yaml') -> dict:
     with open(config_path, 'r') as file:
         config = yaml.safe_load(file)
     return config
+
+def dump_config(config: dict, path: str) -> None:
+    """
+    Dumps the given configuration dictionary into a YAML file at the specified path.
+
+    Parameters:
+    config (Dict): The configuration dictionary to be saved.
+    path (str): The file path where the YAML file will be saved.
+
+    Returns:
+    None
+    """
+    with open(path, 'w') as file:
+        yaml.dump(config, file)
