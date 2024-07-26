@@ -76,6 +76,7 @@ def initialize_model(train_dataloader: DataLoader, params: dict, train_config: d
     train_dataloader (DataLoader): DataLoader for the training data.
     params (dict): Dictionary containing model parameters.
     train_config (dict): Dictionary containing training configuration parameters.
+    target_count (int): The number of target variables. Default is 1.
 
     Returns:
     TemporalFusionTransformer: Initialized Temporal Fusion Transformer model.
