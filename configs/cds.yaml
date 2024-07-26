@@ -13,7 +13,7 @@ time_series:
   groups: ["latitude", "longitude"]
   static_categoricals: ["latitude", "longitude"]
   time_varying_known_reals: ["time_idx", "sin_hour", "cos_hour", "sin_day_of_week", "cos_day_of_week", "sin_month", "cos_month", "sin_year", "cos_year"]
-  lags: {'tcc':[4383, 84]} # Yearly lag (1 year = 4383 intervals for 2-hourly data), Weekly lag (7 days = 84 intervals for 2-hourly data)
+  lags: {'tcc':[12, 84, 360, 4379]} # For every 2 hour daya: Daily = 12, Weekly = 84, Monthly = 360, Yearly = 4379
   allow_missing_timesteps: False
   add_relative_time_idx: True
   add_target_scales: True

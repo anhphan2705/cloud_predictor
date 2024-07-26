@@ -191,6 +191,6 @@ def train_pipeline(train_dataloader: DataLoader, val_dataloader: DataLoader, tra
     best_model_path = trainer.checkpoint_callback.best_model_path
     best_tft = TemporalFusionTransformer.load_from_checkpoint(best_model_path)
 
-    interpret_model_predictions(best_tft, val_dataloader, save_dir=inference_dir, model_name="tft", show=False)
+    interpret_model_predictions(best_tft, val_dataloader, save_dir=inference_dir, model_name="tft", lags=config['time_series']['lags'], show=False)
 
     return best_tft

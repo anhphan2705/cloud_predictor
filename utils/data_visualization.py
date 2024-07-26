@@ -133,7 +133,23 @@ def plot_predictions(prediction_results: dict, model: TemporalFusionTransformer,
 
     print(f"[INFO] Plots saved to {save_dir}")
 
-def interpret_model_predictions(model: TemporalFusionTransformer, dataloader: DataLoader, save_dir: str, model_name: str, show: bool = False) -> None:
+def generate_exclude_features(lags: dict) -> set:
+    """
+    Generate a set of exclude features based on the provided lags.
+
+    Parameters:
+    lags (dict): Dictionary containing variable names as keys and lists of lag values as values.
+
+    Returns:
+    set: A set of exclude feature names formatted as 'variable_lagged_by_lag'.
+    """
+    exclude_features = set()
+    for variable, lag_list in lags.items():
+        for lag in lag_list:
+            exclude_features.add(f'{variable}_lagged_by_{lag}')
+    return exclude_features
+
+def interpret_model_predictions(model: TemporalFusionTransformer, dataloader: DataLoader, save_dir: str, model_name: str, lags: dict, show: bool = False) -> None:
     """
     Interpret model predictions by plotting the actual values against predicted values for each feature.
     
@@ -146,6 +162,7 @@ def interpret_model_predictions(model: TemporalFusionTransformer, dataloader: Da
     dataloader (DataLoader): DataLoader for the validation data.
     save_dir (str): The directory to save interpretation plots.
     model_name (str): The name of the model for naming the plot files.
+    lags (dict): Dictionary containing variable names as keys and lists of lag values as values.
     show (bool, optional): If True, displays the plots. Default is False.
 
     Usage:
@@ -154,13 +171,16 @@ def interpret_model_predictions(model: TemporalFusionTransformer, dataloader: Da
     print("[INFO] Interpreting model predictions...")
 
     # Get prediction results
-    val_prediction_results = model.predict(dataloader, mode="prediction", return_x=True)
+    val_prediction_results = model.predict(dataloader, mode="prediction", return_x=True, output_dir=None)
 
     # Calculate predictions vs actuals
     predictions_vs_actuals = model.calculate_prediction_actual_by_variable(val_prediction_results.x, val_prediction_results.output)
 
+    # Generate exclude features based on lags
+    exclude_features = generate_exclude_features(lags)
+
     # Get feature names
-    features = list(set(predictions_vs_actuals['support'].keys()) - set(['tcc_lagged_by_4383', 'tcc_lagged_by_84']))
+    features = list(set(predictions_vs_actuals['support'].keys()) - exclude_features)
 
     # Plot and save interpretation for each feature
     for feature in features:

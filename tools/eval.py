@@ -20,7 +20,8 @@ def perform_inference(model: TemporalFusionTransformer, dataloader: DataLoader) 
     model_predictions = model.predict(
         dataloader, mode='raw', 
         return_index=True,  # return the prediction index in the same order as the output
-        return_x=True       # return network inputs in the same order as prediction output
+        return_x=True,      # return network inputs in the same order as prediction output
+        output_dir=None
     )
     
     return model_predictions

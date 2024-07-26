@@ -87,7 +87,7 @@ def create_cds_time_series_datasets(df: pd.DataFrame, time_series_config: dict, 
         training_df = df[df["time_idx"] <= training_cutoff]
         print(f'[DEBUG] training_df size: {len(training_df)}')
         
-        print("[INFO] Creating training and validation datasets. You should go get a coffee...")
+        print("[ADVICE] You should go get a coffee...")
         training_dataset = TimeSeriesDataSet(training_df, **common_params)
         print(f'[INFO] Training dataset created.')
         validation_dataset = TimeSeriesDataSet.from_dataset(
