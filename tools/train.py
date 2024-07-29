@@ -110,7 +110,7 @@ def training(train_dataloader: DataLoader, val_dataloader: DataLoader, best_para
     Returns:
     pl.Trainer: The trained PyTorch Lightning trainer.
     """
-    tft = initialize_model(train_dataloader, best_params, config['training'], target_count=len(config['data']['target_vars']))
+    tft = initialize_model(train_dataloader, best_params, config['training'], target_count=len(config['time_series']['target_vars']))
 
     checkpoint_callback = ModelCheckpoint(
         dirpath=checkpoint_dir,

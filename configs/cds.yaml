@@ -33,7 +33,7 @@ training:
   hidden_size: 64
   attention_head_size: 4
   dropout: 0.1
-  ouptut_size: 7
+  output_size: 7
   hidden_continuous_size: 64
 
 hyperparameter_tuning:
