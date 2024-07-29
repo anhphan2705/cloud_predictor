@@ -9,29 +9,7 @@ from lightning.pytorch.loggers import TensorBoardLogger
 from pytorch_forecasting import Baseline, TemporalFusionTransformer
 from pytorch_forecasting.metrics import QuantileLoss
 from tools.hyperparam_tuning import tune_hyperparameters
-from utils.data_visualization import interpret_model_predictions, plot_predictions
-
-def get_predictions(trained_model: TemporalFusionTransformer, baseline_model: Baseline, dataloader: DataLoader) -> dict:
-    """
-    Get predictions from the trained model and the baseline model.
-
-    Parameters:
-    trained_model (TemporalFusionTransformer): The trained Temporal Fusion Transformer model.
-    baseline_model (Baseline): The baseline model.
-    dataloader (DataLoader): DataLoader for the validation data.
-
-    Returns:
-    dict: A dictionary containing the actual data, trained model predictions, and baseline model predictions.
-    """
-    actuals = torch.cat([y[0] for x, y in iter(dataloader)]).cpu().numpy()
-    trained_model_predictions = trained_model.predict(dataloader).cpu().numpy()
-    baseline_model_predictions = baseline_model.predict(dataloader).cpu().numpy()
-    
-    return {
-        "actuals": actuals,
-        "trained_model_predictions": trained_model_predictions,
-        "baseline_model_predictions": baseline_model_predictions
-    }
+from tools.eval import evaluate_pipeline
 
 def create_trainer(config: dict, logger: TensorBoardLogger, checkpoint_callback: ModelCheckpoint, early_stop_callback: EarlyStopping, lr_logger: LearningRateMonitor, progress_bar: TQDMProgressBar) -> pl.Trainer:
     """
@@ -191,7 +169,7 @@ def train_pipeline(train_dataloader: DataLoader, val_dataloader: DataLoader, tra
 
     best_model_path = trainer.checkpoint_callback.best_model_path
     best_tft = TemporalFusionTransformer.load_from_checkpoint(best_model_path)
-
-    interpret_model_predictions(best_tft, val_dataloader, save_dir=inference_dir, model_name="tft", lags=config['time_series']['lags'], show=False)
+    
+    evaluate_pipeline(best_model_path, val_dataloader, inference_dir, config=config, show_future_observed=True, add_loss_to_title=True, show=False)
 
     return best_tft

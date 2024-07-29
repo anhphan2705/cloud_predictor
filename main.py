@@ -98,7 +98,7 @@ def main(config: dict) -> None:
             model_path = evaluation_config['model_path']
 
             # Evaluate the model
-            evaluate_pipeline(model_path, eval_dataloader, inference_dir)
+            evaluate_pipeline(model_path, eval_dataloader, inference_dir, config)
 
         finally:
             # Restore the original stdout and stderr

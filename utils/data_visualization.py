@@ -103,7 +103,7 @@ def convert_to_time_idx(years: int = 0, days: int = 0, hours: int = 0, step: int
     total_hours = total_days * 24 + hours
     return total_hours // step
 
-def plot_predictions(prediction_results: dict, model: TemporalFusionTransformer, save_dir: str, show: bool = True, title: str = 'Model Predictions vs Actual Data') -> None:
+def plot_predictions(prediction_results: dict, model: TemporalFusionTransformer, save_dir: str, show_future_observed: bool = False, add_loss_to_title:bool = False, show: bool = True, title: str = 'Model Predictions vs Actual Data') -> None:
     """
     Plot the actual data, trained model predictions, and baseline model predictions.
 
@@ -111,6 +111,8 @@ def plot_predictions(prediction_results: dict, model: TemporalFusionTransformer,
     prediction_results (dict): A dictionary containing the actual data, trained model predictions, and baseline model predictions.
     model (TemporalFusionTransformer): The trained Temporal Fusion Transformer model.
     save_dir (str): Directory to save the plot.
+    show_future_observed (bool): Whether to show future observed data. Default is False.
+    add_loss_to_title (bool): Whether to add loss to the title. Default is False.
     show (bool): Whether to show the plot. Default is True.
     title (str): Title of the plot.
     """
@@ -122,8 +124,8 @@ def plot_predictions(prediction_results: dict, model: TemporalFusionTransformer,
             prediction_results.x,
             prediction_results.output,
             idx=idx,
-            show_future_observed=False,
-            add_loss_to_title=False,
+            show_future_observed=show_future_observed,
+            add_loss_to_title=add_loss_to_title,
             ax=ax,
         )
 
@@ -149,7 +151,7 @@ def generate_exclude_features(lags: dict) -> set:
             exclude_features.add(f'{variable}_lagged_by_{lag}')
     return exclude_features
 
-def interpret_model_predictions(model: TemporalFusionTransformer, dataloader: DataLoader, save_dir: str, model_name: str, lags: dict, show: bool = False) -> None:
+def interpret_model_predictions(model: TemporalFusionTransformer, dataloader: DataLoader, save_dir: str, model_name: str, lags: dict, show: bool = False, prediction: dict = None) -> None:
     """
     Interpret model predictions by plotting the actual values against predicted values for each feature.
     
@@ -164,20 +166,23 @@ def interpret_model_predictions(model: TemporalFusionTransformer, dataloader: Da
     model_name (str): The name of the model for naming the plot files.
     lags (dict): Dictionary containing variable names as keys and lists of lag values as values.
     show (bool, optional): If True, displays the plots. Default is False.
+    prediction (dict, optional): A dictionary containing the model predictions. If not provided, the model will make predictions.
 
     Usage:
     interpret_model_predictions(trained_model, val_dataloader, './interpretation_plots', model_name="tft", show=True)
     """
     print("[INFO] Interpreting model predictions...")
 
-    # Get prediction results
-    val_prediction_results = model.predict(dataloader, mode="prediction", return_x=True, output_dir=None)
+    if not prediction:
+        # Get prediction results
+        prediction = model.predict(dataloader, mode="prediction", return_index = True, return_x=True, output_dir=None)
 
     # Calculate predictions vs actuals
-    predictions_vs_actuals = model.calculate_prediction_actual_by_variable(val_prediction_results.x, val_prediction_results.output)
+    predictions_vs_actuals = model.calculate_prediction_actual_by_variable(prediction.x, prediction.output)
 
     # Generate exclude features based on lags
     exclude_features = generate_exclude_features(lags)
+    print("[DEBUG] Excluded plots: ", exclude_features)
 
     # Get feature names
     features = list(set(predictions_vs_actuals['support'].keys()) - exclude_features)
