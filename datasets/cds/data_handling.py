@@ -101,7 +101,7 @@ def create_cds_time_series_datasets(df: pd.DataFrame, time_series_config: dict, 
         return training_dataset, validation_dataset
 
     elif mode == 'eval':
-        eval_dataset = TimeSeriesDataSet(df, **common_params)
+        eval_dataset = TimeSeriesDataSet(df, **common_params, predict_mode=True)
         print(f'[INFO] Evaluation dataset created.')
 
         return eval_dataset
