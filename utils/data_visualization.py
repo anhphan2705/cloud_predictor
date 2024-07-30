@@ -103,12 +103,12 @@ def convert_to_time_idx(years: int = 0, days: int = 0, hours: int = 0, step: int
     total_hours = total_days * 24 + hours
     return total_hours // step
 
-def plot_predictions(prediction_results: dict, model: TemporalFusionTransformer, save_dir: str, show_future_observed: bool = False, add_loss_to_title:bool = False, show: bool = True, title: str = 'Model Predictions vs Actual Data') -> None:
+def plot_predictions(predictions: dict, model: TemporalFusionTransformer, save_dir: str, show_future_observed: bool = False, add_loss_to_title:bool = False, show: bool = True, title: str = 'Model Predictions vs Actual Data') -> None:
     """
     Plot the actual data, trained model predictions, and baseline model predictions.
 
     Parameters:
-    prediction_results (dict): A dictionary containing the actual data, trained model predictions, and baseline model predictions.
+    predictions (dict): A dictionary containing the actual data, trained model predictions, and baseline model predictions.
     model (TemporalFusionTransformer): The trained Temporal Fusion Transformer model.
     save_dir (str): Directory to save the plot.
     show_future_observed (bool): Whether to show future observed data. Default is False.
@@ -117,12 +117,14 @@ def plot_predictions(prediction_results: dict, model: TemporalFusionTransformer,
     title (str): Title of the plot.
     """
     print("[INFO] Plotting result...")
+
+    print(f"[DEBUG] Prediction keys: {predictions.keys()}")
     
-    for idx in range(len(prediction_results)):
+    for idx in range(1):
         fig, ax = plt.subplots(figsize=(23, 5))
         model.plot_prediction(
-            prediction_results.x,
-            prediction_results.output,
+            predictions.x,
+            predictions.output,
             idx=idx,
             show_future_observed=show_future_observed,
             add_loss_to_title=add_loss_to_title,
@@ -151,7 +153,7 @@ def generate_exclude_features(lags: dict) -> set:
             exclude_features.add(f'{variable}_lagged_by_{lag}')
     return exclude_features
 
-def interpret_model_predictions(model: TemporalFusionTransformer, dataloader: DataLoader, save_dir: str, model_name: str, lags: dict, show: bool = False, prediction: dict = None) -> None:
+def interpret_model_predictions(model: TemporalFusionTransformer, prediction: dict, save_dir: str, model_name: str, lags: dict, show: bool = False) -> None:
     """
     Interpret model predictions by plotting the actual values against predicted values for each feature.
     
@@ -161,21 +163,18 @@ def interpret_model_predictions(model: TemporalFusionTransformer, dataloader: Da
 
     Parameters:
     model (TemporalFusionTransformer): The trained Temporal Fusion Transformer model.
-    dataloader (DataLoader): DataLoader for the validation data.
+    prediction (dict, optional): A dictionary containing the model predictions. If not provided, the model will make predictions.
     save_dir (str): The directory to save interpretation plots.
     model_name (str): The name of the model for naming the plot files.
     lags (dict): Dictionary containing variable names as keys and lists of lag values as values.
     show (bool, optional): If True, displays the plots. Default is False.
-    prediction (dict, optional): A dictionary containing the model predictions. If not provided, the model will make predictions.
 
     Usage:
     interpret_model_predictions(trained_model, val_dataloader, './interpretation_plots', model_name="tft", show=True)
     """
     print("[INFO] Interpreting model predictions...")
 
-    if not prediction:
-        # Get prediction results
-        prediction = model.predict(dataloader, mode="prediction", return_index = True, return_x=True, output_dir=None)
+    print(f"[DEBUG] Prediction keys: {prediction.keys()}")
 
     # Calculate predictions vs actuals
     predictions_vs_actuals = model.calculate_prediction_actual_by_variable(prediction.x, prediction.output)

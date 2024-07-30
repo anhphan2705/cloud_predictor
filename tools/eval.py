@@ -27,22 +27,30 @@ def get_predictions(trained_model: TemporalFusionTransformer, baseline_model: Ba
         "baseline_model_predictions": baseline_model_predictions
     }
 
-def perform_inference(model: TemporalFusionTransformer, dataloader: DataLoader) -> dict:
+def perform_inference(model: TemporalFusionTransformer, dataloader: DataLoader, mode: str = 'raw', return_index: bool = True, return_x: bool = True, output_dir: str = None) -> dict:
     """
     Perform inference using the trained model.
 
     Parameters:
     model (TemporalFusionTransformer): The trained Temporal Fusion Transformer model.
     dataloader (DataLoader): DataLoader for the inference data.
+    mode (str): Mode for prediction, can be 'prediction', 'raw', or 'prediction_interval'.
+                - 'prediction': returns only the predictions.
+                - 'raw': returns predictions along with additional information such as input features and indices.
+                - 'quantiles': returns predictions for different quantiles, which is useful for uncertainty estimation.
+    return_index (bool): Whether to return the prediction index in the same order as the output. Default is True.
+    return_x (bool): Whether to return network inputs in the same order as the prediction output. Default is True.
+    output_dir (str, optional): Directory to save the predictions. If None, predictions are not saved to a directory.
 
     Returns:
-    dict: A dictionary containing the model predictions, with additional information such as prediction index and inputs.
+    dict: A dictionary containing the model predictions, with additional information such as prediction index and inputs, depending on the mode.
     """
     model_predictions = model.predict(
-        dataloader, mode='raw', 
-        return_index=True,  # return the prediction index in the same order as the output
-        return_x=True,      # return network inputs in the same order as prediction output
-        output_dir=None
+        dataloader, 
+        mode=mode, 
+        return_index=return_index,  # return the prediction index in the same order as the output
+        return_x=return_x,          # return network inputs in the same order as prediction output
+        output_dir=output_dir
     )
     
     return model_predictions
@@ -73,12 +81,11 @@ def evaluate_pipeline(
     print("[INFO] Model loaded successfully.")
 
     # Perform inference
-    predictions = perform_inference(model, eval_dataloader)
-    print("[INFO] Inference completed")
-
+    predictions = perform_inference(model, eval_dataloader, mode='prediction', return_index=True, return_x=True)
     interpret_model_predictions(model, eval_dataloader, save_dir=inference_dir, model_name="tft", lags=config['time_series']['lags'], prediction=predictions, show=False)
     print("[INFO] Model predictions interpreted successfully")
 
     # Plot predictions
-    print("[INFO] Plotting predictions...")
+    predictions = perform_inference(model, eval_dataloader, mode='raw', return_index=True, return_x=True)
     plot_predictions(predictions, model=model, save_dir=inference_dir, show_future_observed=show_future_observed, add_loss_to_title=add_loss_to_title, show=show)
+    print("[INFO] Model predictions plotted successfully")
