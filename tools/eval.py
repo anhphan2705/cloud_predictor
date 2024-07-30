@@ -1,31 +1,8 @@
 import torch
-import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
-from pytorch_forecasting import Baseline, TemporalFusionTransformer
+from pytorch_forecasting import TemporalFusionTransformer
 from utils.file_utils import load_model
 from utils.data_visualization import plot_predictions, interpret_model_predictions
-
-def get_predictions(trained_model: TemporalFusionTransformer, baseline_model: Baseline, dataloader: DataLoader) -> dict:
-    """
-    Get predictions from the trained model and the baseline model.
-
-    Parameters:
-    trained_model (TemporalFusionTransformer): The trained Temporal Fusion Transformer model.
-    baseline_model (Baseline): The baseline model.
-    dataloader (DataLoader): DataLoader for the validation data.
-
-    Returns:
-    dict: A dictionary containing the actual data, trained model predictions, and baseline model predictions.
-    """
-    actuals = torch.cat([y[0] for x, y in iter(dataloader)]).cpu().numpy()
-    trained_model_predictions = trained_model.predict(dataloader).cpu().numpy()
-    baseline_model_predictions = baseline_model.predict(dataloader).cpu().numpy()
-    
-    return {
-        "actuals": actuals,
-        "trained_model_predictions": trained_model_predictions,
-        "baseline_model_predictions": baseline_model_predictions
-    }
 
 def perform_inference(model: TemporalFusionTransformer, dataloader: DataLoader, mode: str = 'raw', return_index: bool = True, return_x: bool = True, output_dir: str = None) -> dict:
     """
@@ -50,7 +27,8 @@ def perform_inference(model: TemporalFusionTransformer, dataloader: DataLoader, 
         mode=mode, 
         return_index=return_index,  # return the prediction index in the same order as the output
         return_x=return_x,          # return network inputs in the same order as prediction output
-        output_dir=output_dir
+        output_dir=output_dir,
+        trainer_kwargs=dict(accelerator="gpu" if torch.cuda.is_available() else "cpu")
     )
     
     return model_predictions
