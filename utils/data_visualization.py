@@ -1,4 +1,5 @@
 import os
+import torch
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -115,8 +116,6 @@ def plot_predictions(predictions: dict, model: TemporalFusionTransformer, save_d
     title (str): Title of the plot.
     """
     print("[INFO] Plotting result...")
-
-    print(f"[DEBUG] Prediction keys: {predictions.keys()}")
     
     for idx in range(1):
         fig, ax = plt.subplots(figsize=(23, 5))
@@ -172,10 +171,10 @@ def interpret_model_predictions(model: TemporalFusionTransformer, prediction: di
     """
     print("[INFO] Interpreting model predictions...")
 
-    print(f"[DEBUG] Prediction keys: {prediction.keys()}")
+    y_pred = prediction.output if type(prediction.output) == torch.Tensor else prediction.output.prediction
 
     # Calculate predictions vs actuals
-    predictions_vs_actuals = model.calculate_prediction_actual_by_variable(prediction.x, prediction.output)
+    predictions_vs_actuals = model.calculate_prediction_actual_by_variable(prediction.x, y_pred)
 
     # Generate exclude features based on lags
     exclude_features = generate_exclude_features(lags)

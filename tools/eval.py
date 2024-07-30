@@ -99,11 +99,10 @@ def evaluate_pipeline(
     evaluate_loss(val_dataloader=eval_dataloader, model=model, model_name="TFT")
 
     # Perform inference
-    predictions = perform_inference(model, eval_dataloader, mode='prediction', return_index=True, return_x=True)
-    interpret_model_predictions(model, prediction=predictions, save_dir=inference_dir, model_name="tft", lags=config['time_series']['lags'], show=False)
-    print("[INFO] Model predictions interpreted successfully")
-
-    # Plot predictions
     predictions = perform_inference(model, eval_dataloader, mode='raw', return_index=True, return_x=True)
+    
+    # Plot predictions
     plot_predictions(predictions, model=model, save_dir=inference_dir, show_future_observed=show_future_observed, add_loss_to_title=add_loss_to_title, show=show)
     print("[INFO] Model predictions plotted successfully")
+    interpret_model_predictions(model, prediction=predictions, save_dir=inference_dir, model_name="tft", lags=config['time_series']['lags'], show=False)
+    print("[INFO] Model predictions interpreted successfully")
