@@ -6,7 +6,7 @@ from lightning.pytorch.callbacks.progress import TQDMProgressBar
 from lightning.pytorch.callbacks.early_stopping import EarlyStopping
 from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint
 from lightning.pytorch.loggers import TensorBoardLogger
-from pytorch_forecasting import Baseline, TemporalFusionTransformer
+from pytorch_forecasting import TemporalFusionTransformer
 from pytorch_forecasting.metrics import QuantileLoss
 from tools.hyperparam_tuning import tune_hyperparameters
 from tools.eval import evaluate_pipeline
@@ -120,29 +120,6 @@ def training(train_dataloader: DataLoader, val_dataloader: DataLoader, best_para
         torch.save(torch.load(best_model_path), final_best_model_path)
 
     return trainer
-
-def evaluate_baseline(train_dataloader: DataLoader, val_dataloader: DataLoader, config: dict) -> Baseline:
-    """
-    Evaluate a baseline model for comparison.
-
-    Parameters:
-    train_dataloader (DataLoader): DataLoader for the training data.
-    val_dataloader (DataLoader): DataLoader for the validation data.
-    config (dict): Dictionary containing configuration parameters.
-
-    Returns:
-    Baseline: The baseline model.
-    """
-    baseline_model = Baseline.from_dataset(train_dataloader.dataset)
-    trainer = pl.Trainer(
-        max_epochs=1,
-        logger=False,
-        enable_checkpointing=False,
-    )
-    val_result = trainer.validate(baseline_model, val_dataloader, verbose=False)
-    print(f"[INFO] Baseline model validation results: {val_result}")
-
-    return baseline_model
 
 def train_pipeline(train_dataloader: DataLoader, val_dataloader: DataLoader, training_dir: str, checkpoint_dir: str, logs_dir: str, inference_dir: str, config: dict) -> TemporalFusionTransformer:
     """

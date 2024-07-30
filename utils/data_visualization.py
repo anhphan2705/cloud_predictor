@@ -1,10 +1,8 @@
 import os
-import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from pytorch_forecasting import TemporalFusionTransformer
-from torch.utils.data import DataLoader
 
 def df_visualizer(df: pd.DataFrame) -> None:
     """
@@ -130,8 +128,8 @@ def plot_predictions(predictions: dict, model: TemporalFusionTransformer, save_d
             add_loss_to_title=add_loss_to_title,
             ax=ax,
         )
-
-        plt.title(title)
+        if not add_loss_to_title:
+            plt.title(title)
         plt.savefig(os.path.join(save_dir, f'model_predictions_{idx}.png'))
         plt.show()
 
