@@ -23,7 +23,7 @@ class Logger(object):
     def close(self):
         self.log.close()
 
-def main(config: dict) -> None:
+def main(config: dict, model_path: str) -> None:
     """
     Main function to run the weather forecasting with Temporal Fusion Transformer.
     
@@ -32,6 +32,7 @@ def main(config: dict) -> None:
 
     Parameters:
     config (dict): Configuration dictionary loaded from a YAML file.
+    model_path (str): Path to the model checkpoint file for evaluation.
     """
     data_config = config['data']
     time_series_config = config['time_series']
@@ -95,7 +96,9 @@ def main(config: dict) -> None:
                 mode='eval'
             )
             
-            model_path = evaluation_config['model_path']
+            # Use the model path from args if provided, else from config
+            model_path = model_path or evaluation_config['model_path']
+            print(f"[DEBUG] Model path: {model_path}")
 
             # Evaluate the model
             evaluate_pipeline(model_path, eval_dataloader, inference_dir, config)
@@ -111,10 +114,11 @@ if __name__ == "__main__":
     parser.add_argument('--mode', type=str, choices=['train', 'eval'], required=True, help='Mode to run: train or eval')
     parser.add_argument('--config', type=str, required=True, help='Path to configuration file (REQUIRED)')
     parser.add_argument('--cuda_memory_fraction', type=float, default=0.5, help='Fraction of CUDA memory to use (e.g., 0.5 for 50%)')
+    parser.add_argument('--model', type=str, default='', help='Path to model for evaluation')
     args = parser.parse_args()
 
     if args.cuda_memory_fraction:
         torch.cuda.set_per_process_memory_fraction(args.cuda_memory_fraction, 0)
 
     config = load_config(args.config)
-    main(config)
+    main(config, args.model)

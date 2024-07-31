@@ -6,6 +6,7 @@ from lightning.pytorch.callbacks.progress import TQDMProgressBar
 from lightning.pytorch.callbacks.early_stopping import EarlyStopping
 from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint
 from lightning.pytorch.loggers import TensorBoardLogger
+from lightning.pytorch.strategies import DDPStrategy
 from pytorch_forecasting import TemporalFusionTransformer
 from pytorch_forecasting.metrics import QuantileLoss
 from tools.hyperparam_tuning import tune_hyperparameters
@@ -37,7 +38,7 @@ def create_trainer(config: dict, logger: TensorBoardLogger, checkpoint_callback:
     return pl.Trainer(
         max_epochs=train_config['max_epochs'],
         accelerator=training_device,
-        strategy='ddp_spawn',  # For Windows users, comment out if Linux
+        # strategy=DDPStrategy(process_group_backend="gloo"),  # For Windows users, comment out if Linux
         devices=1,
         gradient_clip_val=train_config['gradient_clip_val'],
         limit_train_batches=train_config['limit_train_batches'],
