@@ -24,7 +24,7 @@ def dataloader(dataset: TimeSeriesDataSet, train: bool, batch_size: int, num_wor
     print(f"[INFO] Creating DataLoader for {'training' if train else 'validation'}...")
     return dataset.to_dataloader(train=train, batch_size=batch_size, num_workers=num_workers, persistent_workers=True)
 
-def data_pipeline(data_root: str, time_series_config: dict, data_source: str = 'cds', time_column: str = 'time', batch_size: int = 16, num_workers: int = 4, save_dir: str = '', mode: str = 'train') -> tuple:
+def data_pipeline(data_root: str, time_series_config: dict, data_source: str = 'cds', time_column: str = 'time', batch_size: int = 16, num_workers: int = 4, save_dir: str = '', mode: str = 'train', dataloading: bool = True) -> tuple:
     """
     Execute the data pipeline by loading, preprocessing (save preprocessed data if requested), creating datasets, and DataLoaders.
 
@@ -36,6 +36,7 @@ def data_pipeline(data_root: str, time_series_config: dict, data_source: str = '
     batch_size (int): The batch size for DataLoader. Default is `16`.
     num_workers (int): The number of workers for DataLoader. Default is `4`.
     save_dir (str): The directory to save the preprocessed data as `.csv`. Default is empty string.
+    dataloading (bool): Whether to create DataLoaders. Default is `True`. Else return TimeSeriesDataSets.
 
     Returns:
     tuple: A tuple containing (training DataLoader, validation DataLoader) or (None, evaluation Dataloader).
@@ -67,18 +68,18 @@ def data_pipeline(data_root: str, time_series_config: dict, data_source: str = '
         if save_dir:
             save_to_csv(df, save_dir)
 
-        tds_dataset = create_cds_time_series_datasets(df, time_series_config=time_series_config, mode=mode)
+        training_dataset, validation_dataset = create_cds_time_series_datasets(df, time_series_config=time_series_config, mode=mode)
         
-        if mode == 'train':
-            training_dataset, validation_dataset = tds_dataset
+        if not dataloading:
+            return training_dataset, validation_dataset
+        elif mode == 'train':
             # Create DataLoaders
             train_dataloader = dataloader(training_dataset, train=True, batch_size=batch_size, num_workers=num_workers)
             val_dataloader = dataloader(validation_dataset, train=False, batch_size=batch_size, num_workers=num_workers)
             return train_dataloader, val_dataloader
         elif mode == 'eval':
-            evaluation_dataset = tds_dataset
-            eval_dataloader = dataloader(evaluation_dataset, train=False, batch_size=batch_size, num_workers=num_workers)
-            return None, eval_dataloader
+            validation_dataset = dataloader(validation_dataset, train=False, batch_size=batch_size, num_workers=num_workers)
+            return None, validation_dataset
         else:
             raise ValueError(f"Unsupported mode: {mode}. Choose either 'train' or 'eval'.")
     else:

@@ -3,6 +3,43 @@ from pytorch_forecasting.data import GroupNormalizer, MultiNormalizer
 from pytorch_forecasting import TimeSeriesDataSet
 from utils.dataframe_utils import convert_to_datetime, factorize_column, drop_columns, check_and_handle_missing_values, consistency_check, convert_columns_to_string, add_cyclic_features
 
+def filter_dataframe(
+    df: pd.DataFrame, 
+    lat_range: tuple = None, 
+    long_range: tuple = None,
+    time_range: tuple = None,
+) -> pd.DataFrame:
+    """
+    Filter the DataFrame based on multiple criteria including latitude ranges, longitude ranges, and time range.
+
+    Parameters:
+    df (pd.DataFrame): The input DataFrame containing the data.
+    lat_range (tuple[float, float], optional): Latitude range to include as a tuple (min_lat, max_lat). Default is None.
+    long_range (tuple[float, float], optional): Longitude range to include as a tuple (min_long, max_long). Default is None.
+    time_range (tuple[str, str], optional): The time range to include in format ('YYYY-MM-DD', 'YYYY-MM-DD'). Default is None.
+    
+    Returns:
+    pd.DataFrame: The filtered DataFrame containing only the rows that meet all specified criteria.
+    """
+    # Convert 'time' column to datetime if it exists in the DataFrame
+    if 'time' in df.columns:
+        df['time'] = pd.to_datetime(df['time'])
+    
+    # Apply latitude range filter
+    if lat_range:
+        df = df[(df['latitude'] >= lat_range[0]) & (df['latitude'] <= lat_range[1])]
+    
+    # Apply longitude range filter
+    if long_range:
+        df = df[(df['longitude'] >= long_range[0]) & (df['longitude'] <= long_range[1])]
+    
+    # Apply time range filter
+    if time_range:
+        start_time, end_time = pd.to_datetime(time_range[0]), pd.to_datetime(time_range[1])
+        df = df[(df['time'] >= start_time) & (df['time'] <= end_time)]
+    
+    return df.reset_index(drop=True)
+
 def preprocess_cds_df(cds_df: pd.DataFrame, time_column: str = 'time') -> pd.DataFrame: 
     """
     Preprocess the CDS DataFrame by converting to datetime, handling missing values,
@@ -104,7 +141,7 @@ def create_cds_time_series_datasets(df: pd.DataFrame, time_series_config: dict, 
         eval_dataset = TimeSeriesDataSet(df, **common_params, predict_mode=True)
         print(f'[INFO] Evaluation dataset created.')
 
-        return eval_dataset
+        return None, eval_dataset
 
     else:
         raise ValueError(f"Unsupported mode: {mode}. Choose either 'train' or 'eval'.")
