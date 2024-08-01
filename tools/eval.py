@@ -104,5 +104,5 @@ def evaluate_pipeline(
     # Plot predictions
     plot_predictions(predictions, model=model, save_dir=inference_dir, show_future_observed=show_future_observed, add_loss_to_title=add_loss_to_title, show=show)
     print("[INFO] Model predictions plotted successfully")
-    interpret_model_predictions(model, prediction=predictions, save_dir=inference_dir, model_name="tft", lags=config['time_series']['lags'], show=False)
+    interpret_model_predictions(model, prediction=predictions, save_dir=inference_dir, model_name="tft", lags=config['time_series']['lags'], show=show)
     print("[INFO] Model predictions interpreted successfully")
