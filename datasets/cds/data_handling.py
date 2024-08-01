@@ -3,10 +3,11 @@ from pytorch_forecasting.data import GroupNormalizer, MultiNormalizer
 from pytorch_forecasting import TimeSeriesDataSet
 from utils.dataframe_utils import convert_to_datetime, factorize_column, drop_columns, check_and_handle_missing_values, consistency_check, convert_columns_to_string, add_cyclic_features
 
+
 def filter_dataframe(
     df: pd.DataFrame, 
-    lat_range: tuple = None, 
-    long_range: tuple = None,
+    lat_range: list = None, 
+    long_range: list = None,
     time_range: tuple = None,
 ) -> pd.DataFrame:
     """
@@ -14,9 +15,9 @@ def filter_dataframe(
 
     Parameters:
     df (pd.DataFrame): The input DataFrame containing the data.
-    lat_range (tuple[float, float], optional): Latitude range to include as a tuple (min_lat, max_lat). Default is None.
-    long_range (tuple[float, float], optional): Longitude range to include as a tuple (min_long, max_long). Default is None.
-    time_range (tuple[str, str], optional): The time range to include in format ('YYYY-MM-DD', 'YYYY-MM-DD'). Default is None.
+    lat_range (list[float, float], optional): Latitude range to include as a tuple (min_lat, max_lat). Default is None.
+    long_range (list[float, float], optional): Longitude range to include as a tuple (min_long, max_long). Default is None.
+    time_range (list[str, str], optional): The time range to include in format ('YYYY-MM-DD', 'YYYY-MM-DD'). Default is None.
     
     Returns:
     pd.DataFrame: The filtered DataFrame containing only the rows that meet all specified criteria.
@@ -40,19 +41,23 @@ def filter_dataframe(
     
     return df.reset_index(drop=True)
 
-def preprocess_cds_df(cds_df: pd.DataFrame, time_column: str = 'time') -> pd.DataFrame: 
+def preprocess_cds_df(cds_df: pd.DataFrame, latitude_range: list, longtitude_range: list, time_range:list, time_column: str = 'time') -> pd.DataFrame: 
     """
     Preprocess the CDS DataFrame by converting to datetime, handling missing values,
     creating a combined time index, and dropping unnecessary columns.
 
     Parameters:
     cds_df (pd.DataFrame): The input DataFrame to preprocess.
+    latitude_range (list): The latitude range to filter the data.
+    longtitude_range (list): The longitude range to filter the data.
+    time_range (list): The time range to filter the data.
     time_column (str): The name of the time column. Default is 'time'.
 
     Returns:
     pd.DataFrame: The preprocessed DataFrame.
     """
     cds_df = convert_to_datetime(cds_df, column=time_column)
+    cds_df = filter_dataframe(cds_df, lat_range=latitude_range, long_range=longtitude_range, time_range=time_range)
     cds_df = check_and_handle_missing_values(cds_df, drop=True)
     cds_df = add_cyclic_features(cds_df, time_column)
     cds_df = factorize_column(cds_df, column=time_column, new_column='time_idx')
@@ -138,7 +143,7 @@ def create_cds_time_series_datasets(df: pd.DataFrame, time_series_config: dict, 
         return training_dataset, validation_dataset
 
     elif mode == 'eval':
-        eval_dataset = TimeSeriesDataSet(df, **common_params, predict_mode=True)
+        eval_dataset = TimeSeriesDataSet(df, **common_params, predict_mode=True, stop_randomization=True)
         print(f'[INFO] Evaluation dataset created.')
 
         return None, eval_dataset

@@ -24,18 +24,16 @@ def dataloader(dataset: TimeSeriesDataSet, train: bool, batch_size: int, num_wor
     print(f"[INFO] Creating DataLoader for {'training' if train else 'validation'}...")
     return dataset.to_dataloader(train=train, batch_size=batch_size, num_workers=num_workers, persistent_workers=True)
 
-def data_pipeline(data_root: str, time_series_config: dict, data_source: str = 'cds', time_column: str = 'time', batch_size: int = 16, num_workers: int = 4, save_dir: str = '', mode: str = 'train', dataloading: bool = True) -> tuple:
+def data_pipeline(data_root: str, data_config: dict, time_series_config: dict, batch_size: int = 16, num_workers: int = 4, mode: str = 'train', dataloading: bool = True) -> tuple:
     """
     Execute the data pipeline by loading, preprocessing (save preprocessed data if requested), creating datasets, and DataLoaders.
 
     Parameters:
     data_root (str): The directory pattern to search for files (e.g., 'data/*.nc').
-    data_source (str): The source of the data. Default is `cds`.
+    data_config (dict): Dictionary containing data configuration parameters.
     time_series_config (dict): Dictionary containing time series configuration parameters.
-    time_column (str): The name of the time column. Default is `time`.
     batch_size (int): The batch size for DataLoader. Default is `16`.
     num_workers (int): The number of workers for DataLoader. Default is `4`.
-    save_dir (str): The directory to save the preprocessed data as `.csv`. Default is empty string.
     dataloading (bool): Whether to create DataLoaders. Default is `True`. Else return TimeSeriesDataSets.
 
     Returns:
@@ -55,6 +53,12 @@ def data_pipeline(data_root: str, time_series_config: dict, data_source: str = '
     )
     """
     target_vars = time_series_config['target_vars']
+    data_source = data_config['data_source']
+    latitude_range = data_config['latitude_range']
+    longtitude_range = data_config['longtitude_range']
+    time_range = data_config['time_range']
+    time_column = data_config['time_column']
+    save_dir = data_config['save_dir']
 
     # Load the data
     ds = get_combined_dataset(data_root)
@@ -62,8 +66,8 @@ def data_pipeline(data_root: str, time_series_config: dict, data_source: str = '
     print("[INFO] Data loaded successfully.")
     
     # Preprocess the data
-    if data_source == 'cds':
-        df = preprocess_cds_df(df, time_column)
+    if data_source == data_source:
+        df = preprocess_cds_df(df, time_column, latitude_range, longtitude_range, time_range=time_range)
 
         if save_dir:
             save_to_csv(df, save_dir)

@@ -102,7 +102,7 @@ def training(train_dataloader: DataLoader, val_dataloader: DataLoader, best_para
         save_weights_only=config['checkpoint']['save_weights_only'],
         verbose=config['checkpoint']['verbose']
     )
-    early_stop_callback = EarlyStopping(monitor="val_loss", min_delta=config['training']['early_stop_min_delta'], patience=config['training']['early_stop_patience'], verbose=False, mode="min")
+    early_stop_callback = EarlyStopping(monitor=config['checkpoint']['monitor'], min_delta=config['training']['early_stop_min_delta'], patience=config['training']['early_stop_patience'], verbose=False, mode=config['checkpoint']['mode'])
     lr_logger = LearningRateMonitor()
     progress_bar = TQDMProgressBar(refresh_rate=1)
     logger = TensorBoardLogger(save_dir=logs_dir, name="training_logs")

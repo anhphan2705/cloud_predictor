@@ -2,6 +2,9 @@ data:
   data_root: 'data/samples/training/*.nc'
   data_source: 'cds'
   time_column: 'time'
+  latitude_range: [] # [10.5, 10.5]
+  longtitude_range: [] #[106.5, 106.5]
+  time_range: [] #['2019-01-01', '2019-12-31']
   save_dir: ''
 
 time_series:

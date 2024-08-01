@@ -1,6 +1,5 @@
 import xarray as xr
 import os
-
 from utils.file_utils import get_file_paths
 
 def load_datasets(data_paths: list) -> list:

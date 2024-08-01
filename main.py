@@ -55,12 +55,10 @@ def main(config: dict, model_path: str) -> None:
             # Load the data
             train_dataloader, val_dataloader = data_pipeline(
                 data_root=data_config['data_root'],
-                data_source=data_config['data_source'],
+                data_config=data_config,
                 time_series_config=time_series_config,
-                time_column=data_config['time_column'],
                 batch_size=training_config['batch_size'],
                 num_workers=training_config['num_workers'],
-                save_dir=data_config['save_dir'],
                 mode='train'
             )
 
@@ -87,12 +85,10 @@ def main(config: dict, model_path: str) -> None:
             # Load the inference data
             _, eval_dataloader = data_pipeline(
                 data_root=evaluation_config['data_root'],
-                data_source=data_config['data_source'],
+                data_config=data_config,
                 time_series_config=time_series_config,
-                time_column=data_config['time_column'],
                 batch_size=training_config['batch_size'],
                 num_workers=training_config['num_workers'],
-                save_dir=data_config['save_dir'],
                 mode='eval'
             )
             
