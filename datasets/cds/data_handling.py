@@ -1,11 +1,10 @@
 import pandas as pd
 from pytorch_forecasting.data import GroupNormalizer, MultiNormalizer
 from pytorch_forecasting import TimeSeriesDataSet
-from utils.dataframe_utils import convert_to_datetime, factorize_column, drop_columns, check_and_handle_missing_values, consistency_check, convert_columns_to_string, add_cyclic_features
-
+from utils.dataframe_utils import convert_to_datetime, factorize_column, drop_columns, check_and_handle_missing_values, consistency_check, convert_columns_to_string, add_cyclical_calendar_features
 
 def filter_dataframe(
-    df: pd.DataFrame, 
+    df: pd.DataFrame,
     lat_range: list = None, 
     long_range: list = None,
     time_range: tuple = None,
@@ -41,7 +40,7 @@ def filter_dataframe(
     
     return df.reset_index(drop=True)
 
-def preprocess_cds_df(cds_df: pd.DataFrame, latitude_range: list, longtitude_range: list, time_range:list, time_column: str = 'time') -> pd.DataFrame: 
+def preprocess_cds_df(cds_df: pd.DataFrame, latitude_range: list, longtitude_range: list, time_range:list, calendar_cycle: dict, time_column: str = 'time') -> pd.DataFrame: 
     """
     Preprocess the CDS DataFrame by converting to datetime, handling missing values,
     creating a combined time index, and dropping unnecessary columns.
@@ -51,6 +50,7 @@ def preprocess_cds_df(cds_df: pd.DataFrame, latitude_range: list, longtitude_ran
     latitude_range (list): The latitude range to filter the data.
     longtitude_range (list): The longitude range to filter the data.
     time_range (list): The time range to filter the data.
+    calendar_cycle (dict): Dictionary containing the cyclical calendar features.
     time_column (str): The name of the time column. Default is 'time'.
 
     Returns:
@@ -59,7 +59,7 @@ def preprocess_cds_df(cds_df: pd.DataFrame, latitude_range: list, longtitude_ran
     cds_df = convert_to_datetime(cds_df, column=time_column)
     cds_df = filter_dataframe(cds_df, lat_range=latitude_range, long_range=longtitude_range, time_range=time_range)
     cds_df = check_and_handle_missing_values(cds_df, drop=True)
-    cds_df = add_cyclic_features(cds_df, time_column)
+    cds_df = add_cyclical_calendar_features(cds_df, calendar_cycle, time_column)
     cds_df = factorize_column(cds_df, column=time_column, new_column='time_idx')
     cds_df = drop_columns(cds_df, [time_column])
     cds_df = convert_columns_to_string(cds_df, ["latitude", "longitude"])

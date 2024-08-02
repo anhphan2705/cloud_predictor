@@ -5,6 +5,7 @@ data:
   latitude_range: [] # [10.5, 10.5]
   longtitude_range: [] #[106.5, 106.5]
   time_range: [] #['2019-01-01', '2019-12-31']
+  calendar_cycle: {"weekday": 7, "week": 52, "month": 12} # {"hour": 12, "day": 365, "weekday": 7, "week": 52, "month": 12, "year": 1}
   save_dir: ''
 
 time_series:
@@ -15,8 +16,8 @@ time_series:
   min_prediction_length: 12
   groups: ["latitude", "longitude"]
   static_categoricals: ["latitude", "longitude"]
-  time_varying_known_reals: ["time_idx", "sin_hour", "cos_hour", "sin_day_of_week", "cos_day_of_week", "sin_month", "cos_month", "sin_year", "cos_year"]
-  lags: {'tcc':[12, 84, 360, 4379]} # For every 2 hour daya: Daily = 12, Weekly = 84, Monthly = 360, Yearly = 4379
+  time_varying_known_reals: ["time_idx", "weekday_cos", "weekday_sin", "week_cos", "week_sin", "month_cos", "month_sin"]
+  lags: {'tcc':[84, 4379]} # For every 2 hour a day: Daily = 12, Weekly = 84, Monthly = 360, Yearly = 4379
   allow_missing_timesteps: False
   add_relative_time_idx: True
   add_target_scales: True

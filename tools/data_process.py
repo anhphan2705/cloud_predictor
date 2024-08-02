@@ -58,6 +58,7 @@ def data_pipeline(data_root: str, data_config: dict, time_series_config: dict, b
     longtitude_range = data_config['longtitude_range']
     time_range = data_config['time_range']
     time_column = data_config['time_column']
+    calendar_cycle = data_config['calendar_cycle']
     save_dir = data_config['save_dir']
 
     # Load the data
@@ -67,7 +68,7 @@ def data_pipeline(data_root: str, data_config: dict, time_series_config: dict, b
     
     # Preprocess the data
     if data_source == data_source:
-        df = preprocess_cds_df(df, time_column, latitude_range, longtitude_range, time_range=time_range)
+        df = preprocess_cds_df(df, latitude_range, longtitude_range, time_range, calendar_cycle, time_column)
 
         if save_dir:
             save_to_csv(df, save_dir)

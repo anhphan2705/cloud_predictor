@@ -2,7 +2,6 @@ import os
 import torch
 import pandas as pd
 import matplotlib.pyplot as plt
-import seaborn as sns
 from pytorch_forecasting import TemporalFusionTransformer
 
 def df_visualizer(df: pd.DataFrame) -> None:
@@ -33,55 +32,190 @@ def get_col_count(df: pd.DataFrame) -> pd.Series:
     print(f"[INFO] Count of non-missing values in each column:\n{df.count()}")
     return df.count()
 
-def plot_missing_data(df: pd.DataFrame) -> None:
+def plot_missing_data(df: pd.DataFrame, save: bool = False) -> None:
     """
     Plots the missing data in a DataFrame.
 
     Parameters:
     df (pd.DataFrame): The DataFrame to plot missing data.
+    save (bool): Whether to save the plot. Default is False.
 
     Usage:
     plot_missing_data(df)
     """
     missing_info = df.isna().sum().sort_values(ascending=False).to_frame().reset_index()
     missing_info.columns = ["Field Name", "NaN Counts"]
-    plt.figure(figsize=(10, 6))
+    plt.figure(figsize=(23, 6))
     plt.bar(missing_info["Field Name"], missing_info["NaN Counts"])
     plt.xticks(rotation=90)
     plt.xlabel("Columns")
     plt.ylabel("NaN counts")
     plt.title("Missing Values by Column")
     plt.show()
+    if save:
+        plt.savefig(os.path.join('missing_data_plot.png'))
 
-def plot_time_series(df: pd.DataFrame, latitude: float, longitude: float, variables: list, time_column: str = 'time') -> None:
+def plot_target(df: pd.DataFrame, time_column: str, targets: list, group_by: list = None, save: bool = False, combine_groups: bool = True) -> None:
     """
-    Plots the time series for specified variables at a specific latitude and longitude.
+    Plot the time series data for specified target columns, optionally grouped by specified columns.
 
     Parameters:
-    df (pd.DataFrame): The DataFrame containing the data to plot.
-    latitude (float): The latitude to filter the data.
-    longitude (float): The longitude to filter the data.
-    variables (list): A list of variables to plot.
-    time_column (str): The name of the time column. Default is 'time'.
+    df (pd.DataFrame): The input DataFrame containing the data.
+    time_column (str): The name of the time column in the DataFrame.
+    targets (list): A list of target columns to plot.
+    group_by (list, optional): A list of columns to group by (e.g., ['latitude', 'longitude']). Default is None.
+    save (bool): Whether to save the plot. Default is False.
+    combine_groups (bool): Whether to combine all groups of the same target into the same graph. Default is True.
 
-    Usage:
-    plot_time_series(df, latitude=23.0, longitude=102.0, variables=['tciw'])
+    Example Usage:
+    plot_target(cds_df, 'time', ['tcc'], group_by=['latitude', 'longitude'], combine_groups=True)
     """
-    # Filter the DataFrame for the specific latitude and longitude
-    filtered_df = df[(df['latitude'] == latitude) & (df['longitude'] == longitude)]
+    # Ensure targets is a list
+    if isinstance(targets, str):
+        targets = [targets]
 
-    # Plot the time series for the variables of interest
-    plt.figure(figsize=(23, 5))
-    for var in variables:
-        sns.lineplot(data=filtered_df, x=time_column, y=var, label=var)
+    # Set the time column as the index
+    df = df.set_index(time_column)
 
-    plt.title(f'Time Series at Latitude {latitude} and Longitude {longitude}')
-    plt.xlabel('Time')
-    plt.ylabel('Values')
-    plt.legend()
-    plt.grid(True)
-    plt.show()
+    def save_plot(title, filename):
+        plt.title(title)
+        plt.xlabel('Time')
+        plt.ylabel(target)
+        plt.grid(True)
+        plt.legend()
+        if save:
+            plt.savefig(os.path.join(filename))
+        plt.show()
 
+    if group_by:
+        grouped = df.groupby(group_by)
+        for target in targets:
+            if combine_groups:
+                plt.figure(figsize=(23, 6))
+                for group_values, group in grouped:
+                    plt.plot(group.index, group[target], label=f"{', '.join([f'{col} {val}' for col, val in zip(group_by, group_values)])}")
+                save_plot(f'{target} over Time for all groups', f'{target}_all_groups_plot.png')
+            else:
+                for group_values, group in grouped:
+                    plt.figure(figsize=(23, 6))
+                    plt.plot(group.index, group[target], label=f"{', '.join([f'{col} {val}' for col, val in zip(group_by, group_values)])}", color='orange')
+                    save_plot(f'{target} over Time for {", ".join([f"{col} {val}" for col, val in zip(group_by, group_values)])}', f'{target}_in_{group_values}_plot.png')
+    else:
+        for target in targets:
+            plt.figure(figsize=(23, 6))
+            df[target].plot(title=f'{target} over Time', color='orange')
+            save_plot(f'{target} over Time', f'{target}_plot.png')
+
+def plot_target_by_year(df: pd.DataFrame, time_column: str, target_column: str, same_graph: bool = True, save: bool = False) -> None:
+    """
+    Plot the target column by year.
+
+    Parameters:
+    df (pd.DataFrame): The input DataFrame containing the data.
+    time_column (str): The name of the time column in the DataFrame.
+    target_column (str): The name of the target column to plot.
+    same_graph (bool): If True, plot all years on the same graph. If False, plot each year on a separate graph. Default is True.
+    save (bool): Whether to save the plot(s). Default is False.
+
+    Example Usage:
+    plot_target_by_year(cds_df, 'time', 'tcc', same_graph=True)
+    """
+    # Ensure the time column is a datetime type
+    df[time_column] = pd.to_datetime(df[time_column])
+    
+    # Extract the year from the time column
+    df['year'] = df[time_column].dt.year
+
+    # Group the data by year
+    grouped = df.groupby('year')
+
+    if same_graph:
+        # Plot all years on the same graph
+        plt.figure(figsize=(23, 8))
+        for year, group in grouped:
+            plt.plot(group[time_column], group[target_column], label=f'Year {year}')
+        plt.title(f'{target_column} over Time by Year')
+        plt.xlabel('Time')
+        plt.ylabel(target_column)
+        plt.grid(True)
+        plt.legend()
+        plt.show()
+        if save:
+            plt.savefig(f'{target_column}_by_year_same_graph.png')
+    else:
+        # Plot each year on a separate graph
+        for year, group in grouped:
+            plt.figure(figsize=(23, 8))
+            plt.plot(group[time_column], group[target_column], label=f'Year {year}', color='orange')
+            plt.title(f'{target_column} over Time in Year {year}')
+            plt.xlabel('Time')
+            plt.ylabel(target_column)
+            plt.grid(True)
+            plt.legend()
+            plt.show()
+            if save:
+                plt.savefig(f'{target_column}_in_year_{year}.png')
+
+
+def plot_target_comparison(df: pd.DataFrame, time_column: str, target_columns: list, period: str, overlap: bool = True, save: bool = False) -> None:
+    """
+    Plot the target columns, allowing comparison over a selected time period (week, month, or year) on the same graph.
+
+    Parameters:
+    df (pd.DataFrame): The input DataFrame containing the data.
+    time_column (str): The name of the time column in the DataFrame.
+    target_columns (list): A list of target columns to plot.
+    period (str): The period to compare ('week', 'month', 'year').
+    overlap (bool): Whether to overlap the periods on the same graph. Default is True.
+    save (bool): Whether to save the plot(s). Default is False.
+
+    Example Usage:
+    plot_target_comparison(cds_df, 'time', ['tcc'], 'month')
+    plot_target_comparison(cds_df, 'time', ['tcc', 'temperature'], 'month', overlap=True)
+    """
+    # Ensure target_columns is a list
+    if isinstance(target_columns, str):
+        target_columns = [target_columns]
+
+    # Ensure the time column is a datetime type
+    df[time_column] = pd.to_datetime(df[time_column])
+    
+    # Extract the relevant period from the time column
+    if period == 'week':
+        df['period'] = df[time_column].dt.isocalendar().week
+    elif period == 'month':
+        df['period'] = df[time_column].dt.month
+    elif period == 'year':
+        df['period'] = df[time_column].dt.year
+    else:
+        raise ValueError("Invalid period. Choose from 'week', 'month', or 'year'.")
+
+    # Extract the year to differentiate periods across different years
+    df['year'] = df[time_column].dt.year
+
+    # Group the data by the selected period and year
+    grouped = df.groupby(['year', 'period'])
+
+    # Plot each target on a different graph if multiple targets are specified
+    for target in target_columns:
+        plt.figure(figsize=(23, 8))
+        if overlap:
+            for (year, period), group in grouped:
+                plt.plot(group[time_column] - pd.to_datetime(f"{group[time_column].dt.year.iloc[0]}-01-01"), group[target], label=f'Year {year}')
+            plt.title(f'{target} Comparison by {period}')
+            plt.xlabel('Time since start of the year')
+        else:
+            for (year, period), group in grouped:
+                plt.plot(group[time_column], group[target], label=f'Year {year} Period {period}')
+            plt.title(f'{target} over Time by {period}')
+            plt.xlabel('Time')
+        plt.ylabel(target)
+        plt.grid(True)
+        plt.legend()
+        if save:
+            plt.savefig(f'{target}_by_{period}.png')
+        plt.show()
+   
 def convert_to_time_idx(years: int = 0, days: int = 0, hours: int = 0, step: int = 2) -> int:
     """
     Convert years, days, and hours to time index counts.
@@ -102,6 +236,52 @@ def convert_to_time_idx(years: int = 0, days: int = 0, hours: int = 0, step: int
     total_hours = total_days * 24 + hours
     return total_hours // step
 
+def plot_cyclical_features(df: pd.DataFrame, time_column: str, feature_prefixes: list, save: bool = False) -> None:
+    """
+    Plot the time series data along with the added cyclical features to check alignment.
+
+    Parameters:
+    df (pd.DataFrame): The input DataFrame containing the time series data and cyclical features.
+    time_column (str): The name of the time column in the DataFrame.
+    feature_prefixes (list): A list of feature prefixes to plot (e.g., ['day', 'weekday', 'week', 'month']).
+    save (bool): Whether to save the plot. Default is False.
+
+    Example Usage:
+    plot_cyclical_features(cds_df, 'time', ['day', 'weekday', 'week', 'month'])
+    """
+    # Set the time column as the index
+    df = df.set_index(time_column)
+
+    # Create subplots
+    num_features = len(feature_prefixes)
+    fig, axes = plt.subplots(num_features, 1, figsize=(23, 6 * (num_features)))
+
+    if num_features == 1:
+        axes = [axes]
+
+    print(f"[INFO] PLotting cyclical features: {feature_prefixes}")
+    
+    # Plot the cyclical features
+    for i, prefix in enumerate(feature_prefixes):
+        sin_col = f"{prefix}_sin"
+        cos_col = f"{prefix}_cos"
+        print(f"[DEBUG] Plotting {prefix} feature on subplot index {i+1}")
+
+        if sin_col in df.columns and cos_col in df.columns:
+            df[sin_col].plot(ax=axes[i], label=f"{prefix}_sin", color='blue')
+            df[cos_col].plot(ax=axes[i], label=f"{prefix}_cos", color='orange')
+            axes[i].set_title(f"Cyclical Features for {prefix}")
+            axes[i].legend()
+            axes[i].set_ylabel(f"{prefix}_value")
+        else:
+            print(f"Columns {sin_col} or {cos_col} not found in DataFrame.")
+
+    plt.tight_layout()
+    plt.show()
+    if save:
+        plt.savefig(os.path.join(f'cyclical features_plot.png'))
+
+
 def plot_predictions(predictions: dict, model: TemporalFusionTransformer, save_dir: str, show_future_observed: bool = False, add_loss_to_title:bool = False, show: bool = True, title: str = 'Model Predictions vs Actual Data') -> None:
     """
     Plot the actual data, trained model predictions, and baseline model predictions.
@@ -118,7 +298,7 @@ def plot_predictions(predictions: dict, model: TemporalFusionTransformer, save_d
     print("[INFO] Plotting result...")
     
     for idx in range(1):
-        fig, ax = plt.subplots(figsize=(23, 5))
+        fig, ax = plt.subplots(figsize=(23, 6))
         model.plot_prediction(
             predictions.x,
             predictions.output,
@@ -130,7 +310,8 @@ def plot_predictions(predictions: dict, model: TemporalFusionTransformer, save_d
         if not add_loss_to_title:
             plt.title(title)
         plt.savefig(os.path.join(save_dir, f'model_predictions_{idx}.png'))
-        plt.show()
+        if show:
+            plt.show()
 
     print(f"[INFO] Plots saved to {save_dir}")
 
