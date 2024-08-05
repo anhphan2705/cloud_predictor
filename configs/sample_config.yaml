@@ -1,0 +1,77 @@
+data:
+  data_root: 'data/samples/training/*.nc'
+  data_source: 'sample'
+  time_column: 'time'
+  calendar_cycle: {"weekday": 7, "week": 52, "month": 12}
+  save_dir: ''
+
+time_series:
+  target_vars: ['sample_target']
+  max_encoder_length: 365
+  min_encoder_length: 182
+  max_prediction_length: 365
+  min_prediction_length: 12
+  groups: ["group1", "group2"]
+  static_categoricals: []
+  time_varying_known_reals: ["time_idx", "weekday_cos", "weekday_sin", "week_cos", "week_sin", "month_cos", "month_sin"]
+  lags: {'target':[84, 4379]} # For every 2 hour a day: Daily = 12, Weekly = 84, Monthly = 360, Yearly = 4379
+  allow_missing_timesteps: False
+  add_relative_time_idx: True
+  add_target_scales: True
+  add_encoder_length: True
+
+training:
+  batch_size: 64
+  num_workers: 8
+  max_epochs: 100
+  gradient_clip_val: 0.1
+  limit_train_batches: 100
+  log_every_n_steps: 10
+  early_stop_patience: 10
+  early_stop_min_delta: 0.00001
+  reduce_on_plateau_patience: 4
+  learning_rate: 0.01
+  attention_head_size: 4
+  dropout: 0.1
+  hidden_size: 64
+  hidden_continuous_size: 64
+  output_size: 7  # there are 7 quantiles by default: [0.02, 0.1, 0.25, 0.5, 0.75, 0.9, 0.98]
+
+hyperparameter_tuning:
+  enable: False
+  n_trials: 100
+  learning_rate_range: [0.001, 0.1]
+  hidden_size_range: [8, 128]
+  attention_head_size_range: [1, 4]
+  dropout_range: [0.1, 0.3]
+  hidden_continuous_size_range: [8, 128]
+  gradient_clip_val_range: [0.01, 1.0]
+  limit_train_batches: 30
+  early_stop_patience: 10
+  early_stop_min_delta: 0.00001
+  reduce_on_plateau_patience: 4
+  log_every_n_steps: 10
+  max_epochs: 50
+
+evaluation:
+  data_root: 'data/samples/testing/*.nc'
+  model_path: ''
+
+logging:
+  base_dir: './results'
+  training_subdir: 'trainings'
+  evaluation_subdir: 'evaluations'
+  checkpoint_subdir: 'checkpoints'
+  log_subdir: 'logs'
+  inference_subdir: 'inferences'
+
+checkpoint:
+  checkpoint_filename: 'checkpoint_{epoch:03d}_{val_loss:.4f}'
+  best_model_filename: 'best_model.ckpt'
+  monitor: 'val_loss'
+  mode: 'min'
+  save_top_k: -1
+  every_n_epochs: 5
+  save_last: True
+  save_weights_only: False
+  verbose: False
