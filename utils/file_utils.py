@@ -6,21 +6,27 @@ from datetime import datetime
 from pytorch_forecasting import TemporalFusionTransformer
 from pytorch_forecasting.data import TimeSeriesDataSet
 
-def get_file_paths(dir: str) -> list:
+def get_file_paths(path: str) -> list:
     """
-    Retrieves a list of files matching the specified directory pattern.
+    Retrieves a list of files matching the specified directory pattern or single file path.
     
     Parameters:
-    dir (str): The directory pattern to search for files.
+    path (str): The directory pattern to search for files or a single file path.
 
     Usage:
     file_paths = get_file_paths('data/*.nc')
+    file_paths = get_file_paths('data/file.nc')
 
     Returns:
-    list: A list of file paths that match the specified directory pattern.
+    list: A list of file paths that match the specified directory pattern or a single file path.
     """
-    files = glob.glob(dir)
-    print(f"[INFO] Found {len(files)} files in {dir}")
+    if os.path.isfile(path):
+        files = [path]
+        print(f"[INFO] Found 1 file: {path}")
+    else:
+        files = glob.glob(path)
+        print(f"[INFO] Found {len(files)} files in {path}")
+    
     return files
 
 def create_training_directory(log_config: dict) -> tuple:

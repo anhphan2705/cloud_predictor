@@ -1,13 +1,15 @@
+import holidays
 import pandas as pd
 import xarray as xr
 import numpy as np
+from typing import Union
 
-def convert_to_dataframe(datasets: xr.Dataset, variables: list = None) -> pd.DataFrame:
+def convert_to_dataframe(datasets: Union[xr.Dataset, pd.DataFrame], variables: list = None) -> pd.DataFrame:
     """
-    Converts a combined xarray Dataset to a pandas DataFrame, including specified variables.
+    Converts a combined xarray Dataset or pandas DataFrame to a pandas DataFrame, including specified variables.
 
     Parameters:
-    datasets (xr.Dataset): The combined xarray Dataset.
+    datasets (Union[xr.Dataset, pd.DataFrame]): The combined xarray Dataset or pandas DataFrame.
     variables (list, optional): A list of variable names to include in the DataFrame. 
                                 If None, include all variables in the dataset.
 
@@ -17,18 +19,29 @@ def convert_to_dataframe(datasets: xr.Dataset, variables: list = None) -> pd.Dat
     Returns:
     pd.DataFrame: A DataFrame containing the specified variables, with the index reset.
     """
-    if not variables:
-        variables = list(datasets.data_vars)
+    if isinstance(datasets, xr.Dataset):
+        if not variables:
+            variables = list(datasets.data_vars)
 
-    # Debug print statements to help understand the issue
-    print(f"[DEBUG] Dataset variables: {list(datasets.data_vars)}")
-    print(f"[DEBUG] Requested variables: {variables}")
+        print(f"[DEBUG] Dataset variables: {list(datasets.data_vars)}")
+        print(f"[DEBUG] Requested variables: {variables}")
 
-    # Check if variables are in the dataset
-    if not all(var in datasets for var in variables):
-        raise ValueError("[ERROR] One or more variables are not in the dataset")
+        # Check if variables are in the dataset
+        if not all(var in datasets for var in variables):
+            raise ValueError("[ERROR] One or more variables are not in the dataset")
+        
+        df = datasets[variables].to_dataframe().reset_index()
+    elif isinstance(datasets, pd.DataFrame):
+        print(f"[DEBUG] DataFrame columns: {list(datasets.columns)}")
+        print(f"[DEBUG] Requested variables: {variables}")
+
+        if variables:
+            df = datasets[variables].copy()
+        else:
+            df = datasets.copy()
+    else:
+        raise ValueError("[ERROR] Unsupported data type. Expecting xarray.Dataset or pandas.DataFrame.")
     
-    df = datasets[variables].to_dataframe().reset_index()
     print(f"[INFO] Converted dataset to DataFrame. Showing in format [column title] [row counts]:\n{df.count()}")
     return df
 
@@ -82,6 +95,134 @@ def convert_columns_to_string(df: pd.DataFrame, columns: list) -> pd.DataFrame:
     for column in columns:
         df[column] = df[column].astype(str)
         print(f"[INFO] Converted column '{column}' to string.")
+    
+    return df
+
+def convert_columns_to_float(df: pd.DataFrame, columns: list) -> pd.DataFrame:
+    """
+    Convert specified columns in a DataFrame to float.
+
+    Parameters:
+    df (pd.DataFrame): The DataFrame containing the columns to convert.
+    columns (list): A list of column names to convert to float.
+
+    Usage:
+    df = convert_columns_to_float(df, ["num_sold"])
+
+    Returns:
+    pd.DataFrame: The DataFrame with the specified columns converted to float.
+    """
+    for column in columns:
+        df[column] = df[column].astype(float)
+        print(f"[INFO] Converted column '{column}' to float.")
+    
+    return df
+
+def add_weekend_feature(df: pd.DataFrame, time_column: str, count_friday: bool = False) -> pd.DataFrame:
+    """
+    Add a 'weekend' column to the DataFrame. The 'weekend' column will be 1 if the day is Saturday or Sunday, and 0 otherwise.
+
+    Parameters:
+    df (pd.DataFrame): The input DataFrame containing the data.
+    time_column (str): The name of the time column in the DataFrame. The time column should be of datetime type.
+    count_friday (bool): True if you want to add Friday as a weekend, else False. Default is False
+
+    Returns:
+    pd.DataFrame: The DataFrame with the added 'weekend' column.
+    
+    Example Usage:
+    df = add_weekend_feature(df, 'time')
+    """
+    # Ensure the time column is of datetime type
+    df[time_column] = pd.to_datetime(df[time_column])
+    
+    # Set the time column as the index
+    df.set_index(time_column, inplace=True)
+    
+    # Determine weekend starting dayofweek
+    weekend_date = 4 if count_friday else 5
+
+    # Add the 'weekend' column
+    df['weekend'] = (df.index.dayofweek > weekend_date).astype(int)
+    
+    # Reset the index to restore the original DataFrame structure
+    df.reset_index(inplace=True)
+    
+    return df
+
+def add_holidays_feature(df: pd.DataFrame, time_column: str, country_column: str) -> pd.DataFrame:
+    """
+    Add a 'holidays' column to the DataFrame. The 'holidays' column will be 1 if the date is a holiday in the specified country, and 0 otherwise.
+
+    Parameters:
+    df (pd.DataFrame): The input DataFrame containing the data.
+    time_column (str): The name of the time column in the DataFrame. The time column should be of datetime type.
+    country_column (str): The name of the country column in the DataFrame.
+
+    Returns:
+    pd.DataFrame: The DataFrame with the added 'holidays' column.
+    
+    Example Usage:
+    df = add_holidays_feature(df, 'time', 'country')
+    """
+    # Ensure the time column is of datetime type
+    df[time_column] = pd.to_datetime(df[time_column])
+    
+    # Set the time column as the index
+    df.set_index(time_column, inplace=True)
+    
+    # Create a dictionary to store holiday dates per country
+    holidays_dates_per_country = {}
+    
+    # Get unique countries
+    unique_countries = df[country_column].unique()
+    
+    # Iterate over each country to get the holidays
+    for country in unique_countries:
+        # Get the holiday dates for the country
+        country_holidays = getattr(holidays, country)(years=set(df.index.year))
+        holidays_dates_per_country[country] = [pd.to_datetime(date) for date, _ in country_holidays.items()]
+        
+        # Mark holidays in the DataFrame
+        df.loc[df[country_column] == country, 'holidays'] = df.loc[df[country_column] == country].index.isin(holidays_dates_per_country[country])
+    
+    # Convert the 'holidays' column to integer type
+    df['holidays'] = df['holidays'].astype(int)
+    
+    # Reset the index to restore the original DataFrame structure
+    df.reset_index(inplace=True)
+    
+    return df
+
+def add_end_of_year_holidays(df: pd.DataFrame, time_column: str) -> pd.DataFrame:
+    """
+    Add an 'end-of-year holidays' column to the DataFrame. The 'newyear' column will be 1 if the date is between December 25 and December 31, and 0 otherwise.
+
+    Parameters:
+    df (pd.DataFrame): The input DataFrame containing the data.
+    time_column (str): The name of the time column in the DataFrame. The time column should be of datetime type.
+
+    Returns:
+    pd.DataFrame: The DataFrame with the added 'newyear' column.
+    
+    Example Usage:
+    df = add_end_of_year_holidays(df, 'time')
+    """
+    # Ensure the time column is of datetime type
+    df[time_column] = pd.to_datetime(df[time_column])
+    
+    # Set the time column as the index
+    df.set_index(time_column, inplace=True)
+    
+    # Initialize the 'newyear' column with 0
+    df['newyear'] = 0
+    
+    # Mark end-of-year holidays
+    for day in range(25, 32):
+        df.loc[(df.index.month == 12) & (df.index.day == day), 'newyear'] = 1
+    
+    # Reset the index to restore the original DataFrame structure
+    df.reset_index(inplace=True)
     
     return df
 

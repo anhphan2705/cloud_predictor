@@ -3,6 +3,7 @@ from pytorch_forecasting import TimeSeriesDataSet
 from utils.dataset_utils import get_combined_dataset
 from utils.dataframe_utils import convert_to_dataframe, save_to_csv
 from datasets.cds.data_handling import preprocess_cds_df, create_cds_time_series_datasets
+from datasets.tps_sep22.data_handling import preprocess_tpssep22_df, create_tpssep22_time_series_datasets
 
 def dataloader(dataset: TimeSeriesDataSet, train: bool, batch_size: int, num_workers: int) -> pd.DataFrame:
     """
@@ -54,38 +55,49 @@ def data_pipeline(data_root: str, data_config: dict, time_series_config: dict, b
     """
     target_vars = time_series_config['target_vars']
     data_source = data_config['data_source']
-    latitude_range = data_config['latitude_range']
-    longtitude_range = data_config['longtitude_range']
-    time_range = data_config['time_range']
     time_column = data_config['time_column']
     calendar_cycle = data_config['calendar_cycle']
     save_dir = data_config['save_dir']
 
     # Load the data
     ds = get_combined_dataset(data_root)
-    df = convert_to_dataframe(ds, variables=target_vars)
     print("[INFO] Data loaded successfully.")
+
+    training_dataset, validation_dataset = None, None
     
     # Preprocess the data
-    if data_source == data_source:
+    if data_source == 'cds':
+        latitude_range = data_config['latitude_range']
+        longtitude_range = data_config['longtitude_range']
+        time_range = data_config['time_range']
+        df = convert_to_dataframe(ds, variables=target_vars)
         df = preprocess_cds_df(df, latitude_range, longtitude_range, time_range, calendar_cycle, time_column)
 
         if save_dir:
             save_to_csv(df, save_dir)
 
         training_dataset, validation_dataset = create_cds_time_series_datasets(df, time_series_config=time_series_config, mode=mode)
-        
-        if not dataloading:
-            return training_dataset, validation_dataset
-        elif mode == 'train':
-            # Create DataLoaders
-            train_dataloader = dataloader(training_dataset, train=True, batch_size=batch_size, num_workers=num_workers)
-            val_dataloader = dataloader(validation_dataset, train=False, batch_size=batch_size, num_workers=num_workers)
-            return train_dataloader, val_dataloader
-        elif mode == 'eval':
-            validation_dataset = dataloader(validation_dataset, train=False, batch_size=batch_size, num_workers=num_workers)
-            return None, validation_dataset
-        else:
-            raise ValueError(f"Unsupported mode: {mode}. Choose either 'train' or 'eval'.")
+    elif data_source == 'tps_sep22':
+        df = convert_to_dataframe(ds)
+        df = preprocess_tpssep22_df(df, calendar_cycle, target_vars, time_column)
+
+        if save_dir:
+            save_to_csv(df, save_dir)
+
+        training_dataset, validation_dataset = create_tpssep22_time_series_datasets(df, time_series_config=time_series_config, mode=mode)
     else:
         raise ValueError(f"[INFO] Data source {data_source} is not supported.")
+
+    # Dataloader
+    if not dataloading:
+        return training_dataset, validation_dataset
+    elif mode == 'train':
+        # Create DataLoaders
+        train_dataloader = dataloader(training_dataset, train=True, batch_size=batch_size, num_workers=num_workers)
+        val_dataloader = dataloader(validation_dataset, train=False, batch_size=batch_size*10, num_workers=num_workers)
+        return train_dataloader, val_dataloader
+    elif mode == 'eval':
+        validation_dataset = dataloader(validation_dataset, train=False, batch_size=batch_size, num_workers=num_workers)
+        return None, validation_dataset
+    else:
+        raise ValueError(f"Unsupported mode: {mode}. Choose either 'train' or 'eval'.")

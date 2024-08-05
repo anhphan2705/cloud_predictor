@@ -165,3 +165,4 @@ weather_env
 data/*
 models/*
 results/*
+notebooks/*
