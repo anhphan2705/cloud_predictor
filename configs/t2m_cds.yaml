@@ -1,23 +1,23 @@
 data:
-  data_root: 'data/samples/training/*.nc'
+  data_root: 'data/sample/training/*.nc'
   data_source: 'cds'
   time_column: 'time'
   latitude_range: [] # [10.5, 10.5]
   longtitude_range: [] #[106.5, 106.5]
   time_range: [] #['2019-01-01', '2019-12-31']
-  calendar_cycle: {"weekday": 7, "week": 52, "month": 12} # {"hour": 12, "day": 365, "weekday": 7, "week": 52, "month": 12, "year": 1}
+  calendar_cycle: {"hour": 24, "weekday": 7, "week": 52, "month": 12} # {"hour": 24, "day": 365, "weekday": 7, "week": 52, "month": 12}
   save_dir: ''
 
 time_series:
-  target_vars: ['tcc']
+  target_vars: ['t2m']
   max_encoder_length: 365
   min_encoder_length: 182
   max_prediction_length: 365
-  min_prediction_length: 12
+  min_prediction_length: 24
   groups: ["latitude", "longitude"]
   static_categoricals: ["latitude", "longitude"]
   time_varying_known_reals: ["time_idx", "weekday_cos", "weekday_sin", "week_cos", "week_sin", "month_cos", "month_sin"]
-  lags: {'tcc':[84, 4379]} # For every 2 hour a day: Daily = 12, Weekly = 84, Monthly = 360, Yearly = 4379
+  lags: {'t2m':[24, 8758]} # For every 1 hour a day: Daily = 24, Weekly = 168, Monthly = 720, Yearly = 8758
   allow_missing_timesteps: False
   add_relative_time_idx: True
   add_target_scales: True
@@ -28,7 +28,7 @@ training:
   num_workers: 8
   max_epochs: 100
   gradient_clip_val: 0.1
-  limit_train_batches: 100
+  limit_train_batches: 30
   log_every_n_steps: 10
   early_stop_patience: 10
   early_stop_min_delta: 0.00001
@@ -36,9 +36,9 @@ training:
   learning_rate: 0.01
   attention_head_size: 4
   dropout: 0.1
-  hidden_size: 64
-  hidden_continuous_size: 64
-  output_size: 7  # there are 7 quantiles by default: [0.02, 0.1, 0.25, 0.5, 0.75, 0.9, 0.98]
+  hidden_size: 32
+  hidden_continuous_size: 16
+  output_size: 7
 
 hyperparameter_tuning:
   enable: False
@@ -58,7 +58,7 @@ hyperparameter_tuning:
 
 evaluation:
   data_root: 'data/samples/testing/*.nc'
-  model_path: 'results/trainings/20240725_100458_save/best_model.ckpt'
+  model_path: ''
 
 logging:
   base_dir: './results'
