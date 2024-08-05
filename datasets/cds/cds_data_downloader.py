@@ -4,21 +4,34 @@ import cdsapi
 # https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-single-levels?tab=overview
 
 # Create a directory to save the files
-save_dir = 'data/vietnam_cloud_data'
+save_dir = 'data/vietnam_temp_data'
 # List of selected years
-years = ['2001', '2003', '2005', '2007', '2009', '2011', '2013', '2015', '2017', '2019', '2021', '2023']
+years = [year for year in range(2000, 2025)]
 # List of selected months
 months = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12']
 # List of selected days
-days = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '30', '31']
-# Time intervals for every 2 hours
-times = ['00:00', '02:00', '04:00', '06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00']
+days = [
+            '01', '02', '03', '04', '05', '06', '07', '08', '09', '10', 
+            '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', 
+            '21', '22', '23', '24', '25', '26', '27', '28', '29', '30', 
+            '31'
+        ]
+# Time intervals for every 1 hours
+times = [
+            '00:00', '01:00', '02:00',
+            '03:00', '04:00', '05:00',
+            '06:00', '07:00', '08:00',
+            '09:00', '10:00', '11:00',
+            '12:00', '13:00', '14:00',
+            '15:00', '16:00', '17:00',
+            '18:00', '19:00', '20:00',
+            '21:00', '22:00', '23:00',
+        ]
 # List of variables of interest
 variables = [
-    'total_cloud_cover', 'high_cloud_cover', 'medium_cloud_cover', 'low_cloud_cover',
-    'total_column_cloud_ice_water', 'total_column_cloud_liquid_water'
+    '2m_temperature'
 ]
-# North, West, South, East coordinates for Vietnam
+# lat_x, long_x, lat_y, long_y coordinates for Vietnam
 vietnam_area = [23, 102, 8, 110]
 
 # Make saving directory if it doesn't exist
